@@ -24,7 +24,7 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
         Object aimObject = PROVIDER_CLASS_MAP.get(rpcInvocation.getTargetServiceName());
         Method[] methods = aimObject.getClass().getDeclaredMethods();
         Object result = null;
-        for (Method method : methods) {
+        for (Method method: methods) {
             if (method.getName().equals(rpcInvocation.getTargetMethod())) {
                 if (method.getReturnType().equals(Void.TYPE)) {
                     method.invoke(aimObject, rpcInvocation.getArgs());

@@ -1,4 +1,4 @@
-package org.syh.prj.rpc.simplerpc.core.proxy.jdk;
+package org.syh.prj.rpc.simplerpc.core.proxy;
 
 import org.syh.prj.rpc.simplerpc.core.common.protocol.RpcInvocation;
 
@@ -10,12 +10,12 @@ import java.util.concurrent.TimeoutException;
 import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonClientCache.RESP_MAP;
 import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonClientCache.SEND_QUEUE;
 
-public class JDKClientInvocationHandler implements InvocationHandler {
-    private final static Object OBJECT = new Object(); // Placeholder
+public class CustomizedInvocationHandler implements InvocationHandler {
+    private final static Object OBJECT = new Object();
 
     private Class<?> clazz;
 
-    public JDKClientInvocationHandler(Class<?> clazz) {
+    public CustomizedInvocationHandler(Class<?> clazz) {
         this.clazz = clazz;
     }
 
@@ -26,8 +26,10 @@ public class JDKClientInvocationHandler implements InvocationHandler {
         rpcInvocation.setTargetMethod(method.getName());
         rpcInvocation.setTargetServiceName(clazz.getName());
         rpcInvocation.setUuid(UUID.randomUUID().toString());
+
         RESP_MAP.put(rpcInvocation.getUuid(), OBJECT);
         SEND_QUEUE.add(rpcInvocation);
+
         long beginTime = System.currentTimeMillis();
         while (System.currentTimeMillis() - beginTime < 3 * 1000) {
             Object object = RESP_MAP.get(rpcInvocation.getUuid());
@@ -35,7 +37,7 @@ public class JDKClientInvocationHandler implements InvocationHandler {
                 return ((RpcInvocation) object).getResponse();
             }
         }
-        throw new TimeoutException("client wait server's response timeout!");
-    }
 
+        throw new TimeoutException("request timeout!");
+    }
 }
