@@ -53,7 +53,7 @@ public abstract class AbstractZookeeperClient {
 
     public abstract String getNodeData(String path);
 
-    public abstract List<String> getChildrenData(String path);
+    public abstract List<String> getChildrenList(String path);
 
     public abstract void createPersistentData(String address, String data);
 

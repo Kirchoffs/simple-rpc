@@ -4,6 +4,7 @@ import org.syh.prj.rpc.simplerpc.core.registry.RegistryService;
 import org.syh.prj.rpc.simplerpc.core.registry.URL;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonClientCache.SUBSCRIBE_SERVICE_LIST;
 import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonServerCache.PROVIDER_URL_SET;
@@ -21,7 +22,7 @@ public abstract class AbstractRegister implements RegistryService {
 
     @Override
     public void subscribe(URL url) {
-        SUBSCRIBE_SERVICE_LIST.add(url.getServiceName());
+        SUBSCRIBE_SERVICE_LIST.add(url);
     }
 
     @Override
@@ -34,4 +35,7 @@ public abstract class AbstractRegister implements RegistryService {
     public abstract void doBeforeSubscribe(URL url);
 
     public abstract List<String> getProviderIps(String serviceName);
+
+    // ip:port --> urlString
+    public abstract Map<String, String> getServiceDetailMap(String serviceName);
 }

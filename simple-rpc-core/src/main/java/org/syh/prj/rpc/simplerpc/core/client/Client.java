@@ -23,13 +23,20 @@ import org.syh.prj.rpc.simplerpc.core.proxy.jdk.JDKProxyFactory;
 import org.syh.prj.rpc.simplerpc.core.registry.URL;
 import org.syh.prj.rpc.simplerpc.core.registry.zookeeper.AbstractRegister;
 import org.syh.prj.rpc.simplerpc.core.registry.zookeeper.ZookeeperRegister;
+import org.syh.prj.rpc.simplerpc.core.router.impl.DefaultRpcRouterImpl;
+import org.syh.prj.rpc.simplerpc.core.router.impl.WeightedRpcRouterImpl;
 import org.syh.prj.rpc.simplerpc.interfaces.DataService;
 import org.syh.prj.rpc.simplerpc.core.proxy.javassit.JavassitProxyFactory;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonClientCache.SEND_QUEUE;
 import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonClientCache.SUBSCRIBE_SERVICE_LIST;
+import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonClientCache.RPC_ROUTER;
+import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonClientCache.URL_MAP;
+import static org.syh.prj.rpc.simplerpc.core.common.constants.RpcConstants.JAVASSIT_PROXY;
+import static org.syh.prj.rpc.simplerpc.core.common.constants.RpcConstants.RANDOM_ROUTER_TYPE;
 
 public class Client {
     private final Logger logger = LogManager.getLogger(Client.class);
@@ -70,13 +77,22 @@ public class Client {
         clientConfig = PropertiesBootstrap.loadClientConfigFromLocal();
 
         RpcReference rpcReference;
-        if ("javassist".equals(clientConfig.getProxyType())) {
+        if (JAVASSIT_PROXY.equals(clientConfig.getProxyType())) {
             rpcReference = new RpcReference(new JavassitProxyFactory());
         } else {
             rpcReference = new RpcReference(new JDKProxyFactory());
         }
 
         return rpcReference;
+    }
+
+    private void initClientConfig() {
+        String routerStrategy = clientConfig.getRouterStrategy();
+        if (RANDOM_ROUTER_TYPE.equals(routerStrategy)) {
+            RPC_ROUTER = new WeightedRpcRouterImpl();
+        } else {
+            RPC_ROUTER = new DefaultRpcRouterImpl();
+        }
     }
 
     public void doSubscribeService(Class serviceBean) {
@@ -89,21 +105,25 @@ public class Client {
         url.setServiceName(serviceBean.getName());
         url.addParameter("host", CommonUtils.getIpAddress());
 
+        Map<String, String> result = abstractRegister.getServiceDetailMap(serviceBean.getName());
+        URL_MAP.put(serviceBean.getName(), result);
+
         abstractRegister.subscribe(url);
     }
 
     public void doConnectServer() {
-        for (String providerServiceName: SUBSCRIBE_SERVICE_LIST) {
-            List<String> providerIps = abstractRegister.getProviderIps(providerServiceName);
+        for (URL providerUrl: SUBSCRIBE_SERVICE_LIST) {
+            List<String> providerIps = abstractRegister.getProviderIps(providerUrl.getServiceName());
             for (String providerIp: providerIps) {
                 try {
-                    ConnectionHandler.connect(providerServiceName, providerIp);
+                    ConnectionHandler.connect(providerUrl.getServiceName(), providerIp);
                 } catch (InterruptedException e) {
-                    logger.error("[doConnectServer] connect fail ", e);
+                    logger.error("[doConnectServer] failed to connect to the provider ", e);
                 }
             }
             URL url = new URL();
-            url.setServiceName(providerServiceName);
+            url.addParameter("servicePath", providerUrl.getServiceName() + "/provider");
+            url.addParameter("providerIps", String.join(",", providerIps));
             abstractRegister.doAfterSubscribe(url);
         }
     }
@@ -137,6 +157,7 @@ public class Client {
     public static void main(String[] args) throws Throwable {
         Client client = new Client();
         RpcReference rpcReference = client.initClientApplication();
+        client.initClientConfig();
         DataService dataService = rpcReference.get(DataService.class);
         client.doSubscribeService(DataService.class);
         ConnectionHandler.setBootstrap(client.getBootstrap());
@@ -146,11 +167,12 @@ public class Client {
         for (int i = 0; i < 100; i++) {
             try {
                 String result = dataService.sendData("test");
-                System.out.println(result);
+                System.out.println(i + ": " + result);
                 Thread.sleep(1000);
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
+        System.out.println("Done");
     }
 }

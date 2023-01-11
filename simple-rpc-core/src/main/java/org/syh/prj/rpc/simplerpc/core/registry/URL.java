@@ -3,13 +3,21 @@ package org.syh.prj.rpc.simplerpc.core.registry;
 import org.syh.prj.rpc.simplerpc.core.registry.zookeeper.ProviderNodeInfo;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
 public class URL {
+    /**
+     * Client's name
+     */
     private String applicationName;
 
-    private String serviceName; // e.g. com.site.services.UserService
+    /**
+     * Service's name
+     * e.g. com.site.services.UserService
+     */
+    private String serviceName;
 
     private Map<String, String> parameters = new HashMap<>();
 
@@ -41,16 +49,17 @@ public class URL {
         this.parameters = parameters;
     }
 
-    public static String buildProviderUrlStr(URL url) {
+    public static String buildProviderDataStr(URL url) {
         String host = url.getParameters().get("host");
         String port = url.getParameters().get("port");
+        String weight = url.getParameters().get("weight");
         return String.format(
-            "%s;%s;%s:%s;%d",
-            url.getApplicationName(), url.getServiceName(), host, port, System.currentTimeMillis()
+            "%s;%s;%s:%s;%d;%s",
+            url.getApplicationName(), url.getServiceName(), host, port, System.currentTimeMillis(), weight
         );
     }
 
-    public static String buildConsumerUrlStr(URL url) {
+    public static String buildConsumerDataStr(URL url) {
         String host = url.getParameters().get("host");
         return String.format(
                 "%s;%s;%s;%d",
@@ -61,11 +70,13 @@ public class URL {
         );
     }
 
-    public static ProviderNodeInfo buildURLFromUrlStr(String providerNodeStr) {
-        String[] items = providerNodeStr.replaceFirst("^/", "").split("/");
+    public static ProviderNodeInfo buildProviderNodeInfoFromDataStr(String providerDataStr) {
+        String[] items = providerDataStr.split(";");
         ProviderNodeInfo providerNodeInfo = new ProviderNodeInfo();
         providerNodeInfo.setServiceName(items[1]);
-        providerNodeInfo.setAddress(items[3]);
+        providerNodeInfo.setAddress(items[2] + ":" + items[3]);
+        providerNodeInfo.setWeight(Integer.valueOf(items[5]));
+        providerNodeInfo.setRegistryTime(new Date(Long.parseLong(items[4])).toString());
         return providerNodeInfo;
     }
 }

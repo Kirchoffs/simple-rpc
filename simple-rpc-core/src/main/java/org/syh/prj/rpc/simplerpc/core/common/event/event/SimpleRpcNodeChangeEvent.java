@@ -2,10 +2,11 @@ package org.syh.prj.rpc.simplerpc.core.common.event.event;
 
 import org.syh.prj.rpc.simplerpc.core.common.event.SimpleRpcEvent;
 
-public class SimpleRpcUpdateEvent implements SimpleRpcEvent {
+public class SimpleRpcNodeChangeEvent implements SimpleRpcEvent {
+
     private Object data;
 
-    public SimpleRpcUpdateEvent(Object data) {
+    public SimpleRpcNodeChangeEvent(Object data) {
         this.data = data;
     }
 
@@ -15,9 +16,8 @@ public class SimpleRpcUpdateEvent implements SimpleRpcEvent {
     }
 
     @Override
-    public SimpleRpcEvent setData(Object data) {
+    public SimpleRpcNodeChangeEvent setData(Object data) {
         this.data = data;
         return this;
     }
-
 }

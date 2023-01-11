@@ -5,7 +5,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.syh.prj.rpc.simplerpc.core.client.ConnectionHandler;
 import org.syh.prj.rpc.simplerpc.core.common.event.SimpleRpcListener;
-import org.syh.prj.rpc.simplerpc.core.common.event.event.SimpleRpcUpdateEvent;
+import org.syh.prj.rpc.simplerpc.core.common.event.event.SimpleRpcServiceUpdateEvent;
 import org.syh.prj.rpc.simplerpc.core.common.event.data.URLChangeWrapper;
 import org.syh.prj.rpc.simplerpc.core.common.utils.ChannelFutureWrapper;
 import org.syh.prj.rpc.simplerpc.core.common.utils.CommonUtils;
@@ -17,7 +17,7 @@ import java.util.Set;
 
 import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonClientCache.CONNECT_MAP;
 
-public class SimpleRpcServiceUpdateListener implements SimpleRpcListener<SimpleRpcUpdateEvent> {
+public class SimpleRpcServiceUpdateListener implements SimpleRpcListener<SimpleRpcServiceUpdateEvent> {
     private Logger logger = LogManager.getLogger(SimpleRpcServiceUpdateListener.class);
 
     @Override

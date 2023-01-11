@@ -69,6 +69,10 @@ public class Server {
     }
 
     public void exportService(Object serviceBean) {
+        exportService(serviceBean, 100);
+    }
+
+    public void exportService(Object serviceBean, int weight) {
         if (serviceBean.getClass().getInterfaces().length == 0) {
             throw new RuntimeException("service should have interfaces!");
         }
@@ -89,6 +93,7 @@ public class Server {
         url.setApplicationName(serverConfig.getApplicationName());
         url.addParameter("host", CommonUtils.getIpAddress());
         url.addParameter("port", String.valueOf(serverConfig.getServerPort()));
+        url.addParameter("weight", String.valueOf(weight));
         PROVIDER_URL_SET.add(url);
     }
 

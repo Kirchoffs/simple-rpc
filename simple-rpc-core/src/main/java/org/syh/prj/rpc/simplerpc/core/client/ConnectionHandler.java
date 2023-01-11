@@ -4,6 +4,7 @@ import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.ChannelFuture;
 import org.syh.prj.rpc.simplerpc.core.common.utils.ChannelFutureWrapper;
 import org.syh.prj.rpc.simplerpc.core.common.utils.CommonUtils;
+import org.syh.prj.rpc.simplerpc.core.router.Selector;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -11,7 +12,9 @@ import java.util.List;
 import java.util.Random;
 
 import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonClientCache.CONNECT_MAP;
+import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonClientCache.RPC_ROUTER;
 import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonClientCache.SERVER_ADDRESS;
+import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonClientCache.URL_MAP;
 
 public class ConnectionHandler {
     private static Bootstrap bootstrap;
@@ -33,10 +36,12 @@ public class ConnectionHandler {
         Integer port = Integer.parseInt(providerAddress[1]);
 
         ChannelFuture channelFuture = bootstrap.connect(ip, port).sync();
+        String providerURLInfo = URL_MAP.get(providerServiceName).get(providerIp);
         ChannelFutureWrapper channelFutureWrapper = new ChannelFutureWrapper();
         channelFutureWrapper.setChannelFuture(channelFuture);
         channelFutureWrapper.setHost(ip);
         channelFutureWrapper.setPort(port);
+        channelFutureWrapper.setWeight(Integer.valueOf(providerURLInfo.substring(providerURLInfo.lastIndexOf(";") + 1)));
         SERVER_ADDRESS.add(providerIp);
         List<ChannelFutureWrapper> channelFutureWrappers = CONNECT_MAP.get(providerServiceName);
         if (CommonUtils.isEmptyList(channelFutureWrappers)) {
@@ -44,6 +49,8 @@ public class ConnectionHandler {
         }
         channelFutureWrappers.add(channelFutureWrapper);
         CONNECT_MAP.put(providerServiceName, channelFutureWrappers);
+        Selector selector = new Selector.SelectorBuilder().setProviderServiceName(providerServiceName).build();
+        RPC_ROUTER.refreshRouterArr(selector);
     }
 
     public static ChannelFuture createChannelFuture(String ip, Integer port) throws InterruptedException {
@@ -68,9 +75,10 @@ public class ConnectionHandler {
     public static ChannelFuture getChannelFuture(String providerServiceName) {
         List<ChannelFutureWrapper> channelFutureWrappers = CONNECT_MAP.get(providerServiceName);
         if (CommonUtils.isEmptyList(channelFutureWrappers)) {
-            throw new RuntimeException("no provider exist for " + providerServiceName);
+            throw new RuntimeException("no provider exists for " + providerServiceName);
         }
-        ChannelFuture channelFuture = channelFutureWrappers.get(new Random().nextInt(channelFutureWrappers.size())).getChannelFuture();
+        Selector selector = new Selector.SelectorBuilder().setProviderServiceName(providerServiceName).build();
+        ChannelFuture channelFuture = RPC_ROUTER.select(selector).getChannelFuture();
         return channelFuture;
     }
 }

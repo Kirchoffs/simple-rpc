@@ -58,7 +58,7 @@ public class CuratorZookeeperClient extends AbstractZookeeperClient {
     }
 
     @Override
-    public List<String> getChildrenData(String path) {
+    public List<String> getChildrenList(String path) {
         try {
             List<String> childrenData = client.getChildren().forPath(path);
             return childrenData;

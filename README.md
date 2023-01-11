@@ -8,7 +8,16 @@ It can be implemented by normal JDK dynamic proxy, or by Javassit.
 
 2\. How does client connect to the servers or registry centers?  
 
-__Connect to servers:__  
+• Connect to registry center:
+
+In `Client.doSubscribeService`:
+```
+if (abstractRegister == null) {
+    abstractRegister = new ZookeeperRegister(clientConfig.getRegisterAddr());
+}
+```
+
+• Connect to servers:  
 
 In `Client.java`:
 ```
@@ -16,21 +25,18 @@ In `Client.java`:
 ConnectionHandler.setBootstrap(client.getBootstrap());
 
 // In doConnectServer method
-ConnectionHandler.connect(providerServiceName, providerIp);
+// Get IPs from zookeeper registry center, and go through IPs to make the connection.
+for (URL providerUrl: SUBSCRIBE_SERVICE_LIST) {
+    List<String> providerIps = abstractRegister.getProviderIps(providerUrl.getServiceName());
+    fpr (String providerIp: providerIps) {
+        ConnectionHandler.connect(providerServiceName, providerIp); 
+    }
+}
 ```
 
 In `ConnectionHandler.java`:
 ```
 ChannelFuture channelFuture = bootstrap.connect(ip, port).sync();
-```
-
-__Connect to registry center:__  
-
-In `Client.doSubscribeService`:
-```
-if (abstractRegister == null) {
-    abstractRegister = new ZookeeperRegister(clientConfig.getRegisterAddr());
-}
 ```
 
 3\. Basic process from client side  
@@ -45,6 +51,36 @@ Finally, we start a thread, check the `SEND_QUEUE`, if there are data in it, we 
 
 First load the configuration, then put the service in `PROVIDER_URL_SET`. Finally set up the Netty stuff,
 go through the `PROVIDER_URL_SET` and register with the Zookeeper. 
+
+
+5\. How does router work?  
+In `Client.java`, we have an async job kept running to send the request to the corresponding service.
+```
+class AsyncSendJob implements Runnable {
+    private ObjectMapper mapper = new ObjectMapper();
+
+    public AsyncSendJob() {}
+
+    @Override
+    public void run() {
+        while (true) {
+            try {
+                RpcInvocation data = SEND_QUEUE.take();
+                String json = mapper.writeValueAsString(data);
+                RpcProtocol rpcProtocol = new RpcProtocol(json.getBytes());
+                ChannelFuture channelFuture = ConnectionHandler.getChannelFuture(data.getTargetServiceName());
+                channelFuture.channel().writeAndFlush(rpcProtocol);
+            } catch (InterruptedException | JsonProcessingException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+}
+```
+Here we have `ConnectionHandler.getChannelFuture()` method, inside it:
+```
+ChannelFuture channelFuture = RPC_ROUTER.select(selector).getChannelFuture();
+```
 
 
 ## Netty Notes

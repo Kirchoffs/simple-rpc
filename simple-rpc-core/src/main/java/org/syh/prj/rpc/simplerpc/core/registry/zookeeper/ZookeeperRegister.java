@@ -1,18 +1,25 @@
 package org.syh.prj.rpc.simplerpc.core.registry.zookeeper;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
+import org.syh.prj.rpc.simplerpc.core.client.Client;
 import org.syh.prj.rpc.simplerpc.core.common.event.SimpleRpcListenerLoader;
+import org.syh.prj.rpc.simplerpc.core.common.event.event.SimpleRpcNodeChangeEvent;
 import org.syh.prj.rpc.simplerpc.core.registry.RegistryService;
 import org.syh.prj.rpc.simplerpc.core.registry.URL;
-import org.syh.prj.rpc.simplerpc.interfaces.DataService;
 import org.syh.prj.rpc.simplerpc.core.common.event.data.URLChangeWrapper;
 import org.syh.prj.rpc.simplerpc.core.common.event.SimpleRpcEvent;
-import org.syh.prj.rpc.simplerpc.core.common.event.event.SimpleRpcUpdateEvent;
+import org.syh.prj.rpc.simplerpc.core.common.event.event.SimpleRpcServiceUpdateEvent;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class ZookeeperRegister extends AbstractRegister implements RegistryService {
+    private final Logger logger = LogManager.getLogger(ZookeeperRegister.class);
+
     private AbstractZookeeperClient zkClient;
 
     private String ROOT = "/simple-rpc";
@@ -22,7 +29,7 @@ public class ZookeeperRegister extends AbstractRegister implements RegistryServi
     }
 
     private String getConsumerPath(URL url) {
-        return ROOT + "/" + url.getServiceName() + "/consumer/" + url.getApplicationName() + ":" + url.getParameters().get("host") + ":";
+        return ROOT + "/" + url.getServiceName() + "/consumer/" + url.getApplicationName() + ":" + url.getParameters().get("host");
     }
 
     public ZookeeperRegister(String address) {
@@ -32,21 +39,34 @@ public class ZookeeperRegister extends AbstractRegister implements RegistryServi
 
     @Override
     public List<String> getProviderIps(String serviceName) {
-        List<String> nodeDataList = this.zkClient.getChildrenData(ROOT + "/" + serviceName + "/provider");
+        List<String> nodeDataList = this.zkClient.getChildrenList(ROOT + "/" + serviceName + "/provider");
         return nodeDataList;
     }
 
     @Override
-    public void register(URL url) {
+    public Map<String, String> getServiceDetailMap(String serviceName) {
+        List<String> nodeDataList = this.zkClient.getChildrenList(ROOT + "/" + serviceName + "/provider");
+        Map<String, String> result = new HashMap<>();
+        for (String ipAndHost: nodeDataList) {
+            logger.info("Address {}", ipAndHost);
+            String childData = this.zkClient.getNodeData(ROOT + "/" + serviceName + "/provider/" + ipAndHost);
+            result.put(ipAndHost, childData);
+        }
+        return result;
+    }
+
+    @Override
+    public void  register(URL url) {
         if (!this.zkClient.existNode(ROOT)) {
             zkClient.createPersistentData(ROOT, "");
         }
 
-        String urlStr = URL.buildProviderUrlStr(url);
-        if (zkClient.existNode(getProviderPath(url))) {
-            zkClient.deleteNode(getProviderPath(url));
+        String urlStr = URL.buildProviderDataStr(url);
+        String providerPath = getProviderPath(url);
+        if (zkClient.existNode(providerPath)) {
+            zkClient.deleteNode(providerPath);
         }
-        zkClient.createTemporaryData(getProviderPath(url), urlStr);
+        zkClient.createTemporaryData(providerPath, urlStr);
 
         super.register(url);
     }
@@ -63,7 +83,7 @@ public class ZookeeperRegister extends AbstractRegister implements RegistryServi
             zkClient.createPersistentData(ROOT, "");
         }
 
-        String urlStr = URL.buildConsumerUrlStr(url);
+        String urlStr = URL.buildConsumerDataStr(url);
         if (zkClient.existNode(getConsumerPath(url))) {
             zkClient.deleteNode(getConsumerPath(url));
         }
@@ -73,9 +93,35 @@ public class ZookeeperRegister extends AbstractRegister implements RegistryServi
     }
 
     @Override
+    public void unSubscribe(URL url) {
+        zkClient.deleteNode(getConsumerPath(url));
+        super.unSubscribe(url);
+    }
+
+    @Override
     public void doAfterSubscribe(URL url) {
-        String newServerNodePath = ROOT + "/" + url.getServiceName() + "/provider";
-        watchChildNodeData(newServerNodePath);
+        String servicePath = ROOT + "/" + url.getParameters().get("servicePath");
+        watchChildNodeData(servicePath);
+        String providerIpsStr = url.getParameters().get("providerIps");
+        String[] providerIpsList = providerIpsStr.split(",");
+        for (String providerIp: providerIpsList) {
+            watchNodeDataChange(servicePath + "/" + providerIp);
+        }
+    }
+
+    public void watchNodeDataChange(String newServerNodePath) {
+        zkClient.watchNodeData(newServerNodePath, new Watcher() {
+
+            @Override
+            public void process(WatchedEvent watchedEvent) {
+                String path = watchedEvent.getPath();
+                String nodeData = zkClient.getNodeData(path);
+                ProviderNodeInfo providerNodeInfo = URL.buildProviderNodeInfoFromDataStr(nodeData);
+                SimpleRpcEvent event = new SimpleRpcNodeChangeEvent(providerNodeInfo);
+                SimpleRpcListenerLoader.sendEvent(event);
+                watchNodeDataChange(newServerNodePath);
+            }
+        });
     }
 
     public void watchChildNodeData(String newServerNodePath){
@@ -84,13 +130,13 @@ public class ZookeeperRegister extends AbstractRegister implements RegistryServi
             public void process(WatchedEvent watchedEvent) {
                 System.out.println(watchedEvent);
                 String path = watchedEvent.getPath();
-                List<String> childrenDataList = zkClient.getChildrenData(path);
+                List<String> childrenDataList = zkClient.getChildrenList(path);
 
                 URLChangeWrapper urlChangeWrapper = new URLChangeWrapper();
                 urlChangeWrapper.setProviderUrl(childrenDataList);
                 urlChangeWrapper.setServiceName(path.replaceFirst("^/", "").split("/")[1]);
 
-                SimpleRpcEvent simpleRpcEvent = new SimpleRpcUpdateEvent(urlChangeWrapper);
+                SimpleRpcEvent simpleRpcEvent = new SimpleRpcServiceUpdateEvent(urlChangeWrapper);
                 SimpleRpcListenerLoader.sendEvent(simpleRpcEvent);
 
                 watchChildNodeData(path);
@@ -101,11 +147,5 @@ public class ZookeeperRegister extends AbstractRegister implements RegistryServi
     @Override
     public void doBeforeSubscribe(URL url) {
 
-    }
-
-    @Override
-    public void unSubscribe(URL url) {
-        this.zkClient.deleteNode(getConsumerPath(url));
-        super.unSubscribe(url);
     }
 }

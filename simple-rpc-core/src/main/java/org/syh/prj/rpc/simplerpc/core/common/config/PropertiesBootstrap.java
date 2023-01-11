@@ -5,10 +5,11 @@ import java.io.IOException;
 public class PropertiesBootstrap {
     private volatile boolean configIsReady;
 
-    public static final String SERVER_PORT = "simple-rpc.serverPort";
-    public static final String REGISTER_ADDRESS = "simple-rpc.registerAddr";
-    public static final String APPLICATION_NAME = "simple-rpc.applicationName";
-    public static final String PROXY_TYPE = "simple-rpc.proxyType";
+    public static final String SERVER_PORT = "simple-rpc.server-port";
+    public static final String REGISTER_ADDRESS = "simple-rpc.register-addr";
+    public static final String APPLICATION_NAME = "simple-rpc.application-name";
+    public static final String PROXY_TYPE = "simple-rpc.proxy-type";
+    public static final String ROUTER_STRATEGY = "simple-rpc.router-strategy";
 
     public static ServerConfig loadServerConfigFromLocal() {
         try {
@@ -36,6 +37,7 @@ public class PropertiesBootstrap {
         clientConfig.setApplicationName(PropertiesLoader.getPropertiesStr(APPLICATION_NAME));
         clientConfig.setRegisterAddr(PropertiesLoader.getPropertiesStr(REGISTER_ADDRESS));
         clientConfig.setProxyType(PropertiesLoader.getPropertiesStr(PROXY_TYPE));
+        clientConfig.setRouterStrategy(PropertiesLoader.getPropertiesStr(ROUTER_STRATEGY));
 
         return clientConfig;
     }

@@ -7,12 +7,14 @@ public class ClientConfig {
 
     private String proxyType;
 
-    public String getProxyType() {
-        return proxyType;
+    private String routerStrategy;
+
+    public String getApplicationName() {
+        return applicationName;
     }
 
-    public void setProxyType(String proxyType) {
-        this.proxyType = proxyType;
+    public void setApplicationName(String applicationName) {
+        this.applicationName = applicationName;
     }
 
     public String getRegisterAddr() {
@@ -23,11 +25,19 @@ public class ClientConfig {
         this.registerAddr = registerAddr;
     }
 
-    public String getApplicationName() {
-        return applicationName;
+    public String getProxyType() {
+        return proxyType;
     }
 
-    public void setApplicationName(String applicationName) {
-        this.applicationName = applicationName;
+    public void setProxyType(String proxyType) {
+        this.proxyType = proxyType;
+    }
+
+    public String getRouterStrategy() {
+        return registerAddr;
+    }
+
+    public void setRouterStrategy(String routerStrategy) {
+        this.routerStrategy = routerStrategy;
     }
 }
