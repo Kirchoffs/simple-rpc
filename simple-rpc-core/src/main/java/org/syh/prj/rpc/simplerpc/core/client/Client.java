@@ -25,6 +25,10 @@ import org.syh.prj.rpc.simplerpc.core.registry.zookeeper.AbstractRegister;
 import org.syh.prj.rpc.simplerpc.core.registry.zookeeper.ZookeeperRegister;
 import org.syh.prj.rpc.simplerpc.core.router.impl.DefaultRpcRouterImpl;
 import org.syh.prj.rpc.simplerpc.core.router.impl.WeightedRpcRouterImpl;
+import org.syh.prj.rpc.simplerpc.core.serialize.hessian.HessianSerializeFactory;
+import org.syh.prj.rpc.simplerpc.core.serialize.jackson.JacksonSerializeFactory;
+import org.syh.prj.rpc.simplerpc.core.serialize.jdk.JdkSerializeFactory;
+import org.syh.prj.rpc.simplerpc.core.serialize.kryo.KryoSerializeFactory;
 import org.syh.prj.rpc.simplerpc.interfaces.DataService;
 import org.syh.prj.rpc.simplerpc.core.proxy.javassit.JavassitProxyFactory;
 
@@ -35,7 +39,12 @@ import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonClientCache.SEND
 import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonClientCache.SUBSCRIBE_SERVICE_LIST;
 import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonClientCache.RPC_ROUTER;
 import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonClientCache.URL_MAP;
+import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonClientCache.CLIENT_SERIALIZE_FACTORY;
+import static org.syh.prj.rpc.simplerpc.core.common.constants.RpcConstants.HESSIAN_SERIALIZE_TYPE;
+import static org.syh.prj.rpc.simplerpc.core.common.constants.RpcConstants.JACKSON_SERIALIZE_TYPE;
 import static org.syh.prj.rpc.simplerpc.core.common.constants.RpcConstants.JAVASSIT_PROXY;
+import static org.syh.prj.rpc.simplerpc.core.common.constants.RpcConstants.JDK_SERIALIZE_TYPE;
+import static org.syh.prj.rpc.simplerpc.core.common.constants.RpcConstants.KRYO_SERIALIZE_TYPE;
 import static org.syh.prj.rpc.simplerpc.core.common.constants.RpcConstants.RANDOM_ROUTER_TYPE;
 
 public class Client {
@@ -88,10 +97,27 @@ public class Client {
 
     private void initClientConfig() {
         String routerStrategy = clientConfig.getRouterStrategy();
-        if (RANDOM_ROUTER_TYPE.equals(routerStrategy)) {
-            RPC_ROUTER = new WeightedRpcRouterImpl();
-        } else {
-            RPC_ROUTER = new DefaultRpcRouterImpl();
+        switch (routerStrategy) {
+            case RANDOM_ROUTER_TYPE:
+                RPC_ROUTER = new WeightedRpcRouterImpl();
+                break;
+            default:
+                RPC_ROUTER = new DefaultRpcRouterImpl();
+        }
+
+        String clientSerialize = clientConfig.getClientSerialize();
+        switch (clientSerialize) {
+            case JACKSON_SERIALIZE_TYPE:
+                CLIENT_SERIALIZE_FACTORY = new JacksonSerializeFactory();
+                break;
+            case HESSIAN_SERIALIZE_TYPE:
+                CLIENT_SERIALIZE_FACTORY = new HessianSerializeFactory();
+                break;
+            case KRYO_SERIALIZE_TYPE:
+                CLIENT_SERIALIZE_FACTORY = new KryoSerializeFactory();
+                break;
+            default:
+                CLIENT_SERIALIZE_FACTORY = new JdkSerializeFactory();
         }
     }
 
@@ -134,7 +160,6 @@ public class Client {
     }
 
     class AsyncSendJob implements Runnable {
-        private ObjectMapper mapper = new ObjectMapper();
 
         public AsyncSendJob() {}
 
@@ -143,11 +168,10 @@ public class Client {
             while (true) {
                 try {
                     RpcInvocation data = SEND_QUEUE.take();
-                    String json = mapper.writeValueAsString(data);
-                    RpcProtocol rpcProtocol = new RpcProtocol(json.getBytes());
+                    RpcProtocol rpcProtocol = new RpcProtocol(CLIENT_SERIALIZE_FACTORY.serialize(data));
                     ChannelFuture channelFuture = ConnectionHandler.getChannelFuture(data.getTargetServiceName());
                     channelFuture.channel().writeAndFlush(rpcProtocol);
-                } catch (InterruptedException | JsonProcessingException e) {
+                } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
@@ -164,7 +188,7 @@ public class Client {
         client.doConnectServer();
         client.startClient();
 
-        for (int i = 0; i < 100; i++) {
+        for (int i = 0; i < 10; i++) {
             try {
                 String result = dataService.sendData("test");
                 System.out.println(i + ": " + result);
@@ -173,6 +197,8 @@ public class Client {
                 e.printStackTrace();
             }
         }
+        List<String> results = dataService.getList();
+        System.out.println(results);
         System.out.println("Done");
     }
 }

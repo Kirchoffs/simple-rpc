@@ -5,5 +5,8 @@ public class RpcConstants {
     public static final String JAVASSIT_PROXY = "javassist";
     public static final String JDK_PROXY = "jdk";
     public static final String RANDOM_ROUTER_TYPE = "random";
-    public static final String ROTATE_ROUTER_TYPE = "rotate";
+    public static final String JDK_SERIALIZE_TYPE = "jdk";
+    public static final String JACKSON_SERIALIZE_TYPE = "jackson";
+    public static final String HESSIAN_SERIALIZE_TYPE = "hessian";
+    public static final String KRYO_SERIALIZE_TYPE = "kryo";
 }

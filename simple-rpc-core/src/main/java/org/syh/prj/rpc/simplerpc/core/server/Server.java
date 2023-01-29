@@ -15,9 +15,18 @@ import org.syh.prj.rpc.simplerpc.core.common.utils.CommonUtils;
 import org.syh.prj.rpc.simplerpc.core.registry.RegistryService;
 import org.syh.prj.rpc.simplerpc.core.registry.URL;
 import org.syh.prj.rpc.simplerpc.core.registry.zookeeper.ZookeeperRegister;
+import org.syh.prj.rpc.simplerpc.core.serialize.hessian.HessianSerializeFactory;
+import org.syh.prj.rpc.simplerpc.core.serialize.jackson.JacksonSerializeFactory;
+import org.syh.prj.rpc.simplerpc.core.serialize.jdk.JdkSerializeFactory;
+import org.syh.prj.rpc.simplerpc.core.serialize.kryo.KryoSerializeFactory;
 
+import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonClientCache.CLIENT_SERIALIZE_FACTORY;
 import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonServerCache.PROVIDER_CLASS_MAP;
 import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonServerCache.PROVIDER_URL_SET;
+import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonServerCache.SERVER_SERIALIZE_FACTORY;
+import static org.syh.prj.rpc.simplerpc.core.common.constants.RpcConstants.HESSIAN_SERIALIZE_TYPE;
+import static org.syh.prj.rpc.simplerpc.core.common.constants.RpcConstants.JACKSON_SERIALIZE_TYPE;
+import static org.syh.prj.rpc.simplerpc.core.common.constants.RpcConstants.KRYO_SERIALIZE_TYPE;
 
 public class Server {
 
@@ -66,6 +75,21 @@ public class Server {
     public void initServerConfig() {
         ServerConfig serverConfig = PropertiesBootstrap.loadServerConfigFromLocal();
         this.setServerConfig(serverConfig);
+
+        String serverSerialize = serverConfig.getServerSerialize();
+        switch (serverSerialize) {
+            case JACKSON_SERIALIZE_TYPE:
+                SERVER_SERIALIZE_FACTORY = new JacksonSerializeFactory();
+                break;
+            case HESSIAN_SERIALIZE_TYPE:
+                SERVER_SERIALIZE_FACTORY = new HessianSerializeFactory();
+                break;
+            case KRYO_SERIALIZE_TYPE:
+                SERVER_SERIALIZE_FACTORY = new KryoSerializeFactory();
+                break;
+            default:
+                SERVER_SERIALIZE_FACTORY = new JdkSerializeFactory();
+        }
     }
 
     public void exportService(Object serviceBean) {

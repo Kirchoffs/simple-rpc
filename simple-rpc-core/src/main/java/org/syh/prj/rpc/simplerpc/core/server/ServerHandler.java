@@ -12,15 +12,14 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
 import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonServerCache.PROVIDER_CLASS_MAP;
+import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonServerCache.SERVER_SERIALIZE_FACTORY;
 
 public class ServerHandler extends ChannelInboundHandlerAdapter {
-    private ObjectMapper mapper = new ObjectMapper();
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws InvocationTargetException, IllegalAccessException, JsonProcessingException {
         RpcProtocol rpcProtocol = (RpcProtocol) msg;
-        String json = new String(rpcProtocol.getContent(), 0, rpcProtocol.getContentLength());
-        RpcInvocation rpcInvocation = mapper.readValue(json, RpcInvocation.class);
+        RpcInvocation rpcInvocation = SERVER_SERIALIZE_FACTORY.deserialize(rpcProtocol.getContent(), RpcInvocation.class);
         Object aimObject = PROVIDER_CLASS_MAP.get(rpcInvocation.getTargetServiceName());
         Method[] methods = aimObject.getClass().getDeclaredMethods();
         Object result = null;
@@ -35,7 +34,7 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
             }
         }
         rpcInvocation.setResponse(result);
-        RpcProtocol respRpcProtocol = new RpcProtocol(mapper.writeValueAsBytes(rpcInvocation));
+        RpcProtocol respRpcProtocol = new RpcProtocol(SERVER_SERIALIZE_FACTORY.serialize(rpcInvocation));
         ctx.writeAndFlush(respRpcProtocol);
     }
 

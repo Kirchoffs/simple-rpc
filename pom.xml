@@ -11,6 +11,7 @@
     <modules>
         <module>simple-rpc-core</module>
         <module>simple-rpc-interface</module>
+        <module>simple-rpc-jmh</module>
     </modules>
 
     <properties>
@@ -26,6 +27,9 @@
         <curator.version>5.4.0</curator.version>
         <junit5.version>5.9.1</junit5.version>
         <surefire.version>3.0.0-M7</surefire.version>
+        <hessian.version>4.0.66</hessian.version>
+        <kryo.version>4.0.0</kryo.version>
+        <jmh.version>1.36</jmh.version>
     </properties>
 
     <dependencyManagement>
@@ -33,6 +37,12 @@
             <dependency>
                 <groupId>org.syh.prj.rpc</groupId>
                 <artifactId>simple-rpc-interface</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.syh.prj.rpc</groupId>
+                <artifactId>simple-rpc-core</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -89,6 +99,31 @@
                 <artifactId>junit-jupiter-api</artifactId>
                 <version>${junit5.version}</version>
                 <scope>test</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>com.caucho</groupId>
+                <artifactId>hessian</artifactId>
+                <version>${hessian.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.esotericsoftware</groupId>
+                <artifactId>kryo</artifactId>
+                <version>${kryo.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.openjdk.jmh</groupId>
+                <artifactId>jmh-core</artifactId>
+                <version>${jmh.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.openjdk.jmh</groupId>
+                <artifactId>jmh-generator-annprocess</artifactId>
+                <version>${jmh.version}</version>
+                <scope>provided</scope>
             </dependency>
         </dependencies>
     </dependencyManagement>

@@ -1,8 +1,9 @@
 package org.syh.prj.rpc.simplerpc.core.common.protocol;
 
+import java.io.Serializable;
 import java.util.Arrays;
 
-public class RpcInvocation {
+public class RpcInvocation implements Serializable {
     private String targetMethod;
 
     private String targetServiceName;
