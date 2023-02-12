@@ -7,6 +7,8 @@ public class ProviderNodeInfo {
 
     private Integer weight;
 
+    private String group;
+
     private String registryTime;
 
     public String getServiceName() {
@@ -31,6 +33,14 @@ public class ProviderNodeInfo {
 
     public void setWeight(Integer weight) {
         this.weight = weight;
+    }
+
+    public String getGroup() {
+        return group;
+    }
+
+    public void setGroup(String group) {
+        this.group = group;
     }
 
     public String getRegistryTime() {

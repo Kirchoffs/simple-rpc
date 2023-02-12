@@ -2,18 +2,25 @@ package org.syh.prj.rpc.simplerpc.core.client;
 
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.ChannelFuture;
+import org.syh.prj.rpc.simplerpc.core.common.protocol.RpcInvocation;
 import org.syh.prj.rpc.simplerpc.core.common.utils.ChannelFutureWrapper;
 import org.syh.prj.rpc.simplerpc.core.common.utils.CommonUtils;
+import org.syh.prj.rpc.simplerpc.core.registry.URL;
+import org.syh.prj.rpc.simplerpc.core.registry.zookeeper.ProviderNodeInfo;
 import org.syh.prj.rpc.simplerpc.core.router.Selector;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
+import java.util.stream.Collectors;
 
+import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonClientCache.CLIENT_FILTER_CHAIN;
 import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonClientCache.CONNECT_MAP;
 import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonClientCache.RPC_ROUTER;
 import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonClientCache.SERVER_ADDRESS;
+import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonClientCache.SERVICE_ROUTER_MAP;
 import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonClientCache.URL_MAP;
 
 public class ConnectionHandler {
@@ -36,19 +43,16 @@ public class ConnectionHandler {
         Integer port = Integer.parseInt(providerAddress[1]);
 
         ChannelFuture channelFuture = bootstrap.connect(ip, port).sync();
-        String providerURLInfo = URL_MAP.get(providerServiceName).get(providerIp);
+        String providerNodeInfoDataStr = URL_MAP.get(providerServiceName).get(providerIp);
+        ProviderNodeInfo providerNodeInfo = URL.buildProviderNodeInfoFromDataStr(providerNodeInfoDataStr);
         ChannelFutureWrapper channelFutureWrapper = new ChannelFutureWrapper();
         channelFutureWrapper.setChannelFuture(channelFuture);
         channelFutureWrapper.setHost(ip);
         channelFutureWrapper.setPort(port);
-        channelFutureWrapper.setWeight(Integer.valueOf(providerURLInfo.substring(providerURLInfo.lastIndexOf(";") + 1)));
+        channelFutureWrapper.setWeight(providerNodeInfo.getWeight());
+        channelFutureWrapper.setGroup(providerNodeInfo.getGroup());
         SERVER_ADDRESS.add(providerIp);
-        List<ChannelFutureWrapper> channelFutureWrappers = CONNECT_MAP.get(providerServiceName);
-        if (CommonUtils.isEmptyList(channelFutureWrappers)) {
-            channelFutureWrappers = new ArrayList<>();
-        }
-        channelFutureWrappers.add(channelFutureWrapper);
-        CONNECT_MAP.put(providerServiceName, channelFutureWrappers);
+        CONNECT_MAP.computeIfAbsent(providerServiceName, param -> new ArrayList<>()).add(channelFutureWrapper);
         Selector selector = new Selector.SelectorBuilder().setProviderServiceName(providerServiceName).build();
         RPC_ROUTER.refreshRouterArr(selector);
     }
@@ -72,12 +76,19 @@ public class ConnectionHandler {
         }
     }
 
-    public static ChannelFuture getChannelFuture(String providerServiceName) {
-        List<ChannelFutureWrapper> channelFutureWrappers = CONNECT_MAP.get(providerServiceName);
-        if (CommonUtils.isEmptyList(channelFutureWrappers)) {
+    public static ChannelFuture getChannelFuture(RpcInvocation rpcInvocation) {
+        String providerServiceName = rpcInvocation.getTargetServiceName();
+        ChannelFutureWrapper[] channelFutureWrappers = SERVICE_ROUTER_MAP.get(providerServiceName);
+        if (channelFutureWrappers == null || channelFutureWrappers.length == 0) {
             throw new RuntimeException("no provider exists for " + providerServiceName);
         }
-        Selector selector = new Selector.SelectorBuilder().setProviderServiceName(providerServiceName).build();
+
+        List<ChannelFutureWrapper> candidatesChannelFutureWrappers = Arrays.stream(channelFutureWrappers).collect(Collectors.toList());
+        CLIENT_FILTER_CHAIN.doFilter(candidatesChannelFutureWrappers, rpcInvocation);
+        Selector selector = new Selector.SelectorBuilder()
+                .setProviderServiceName(providerServiceName)
+                .setChannelFutureWrappers(candidatesChannelFutureWrappers)
+                .build();
         ChannelFuture channelFuture = RPC_ROUTER.select(selector).getChannelFuture();
         return channelFuture;
     }

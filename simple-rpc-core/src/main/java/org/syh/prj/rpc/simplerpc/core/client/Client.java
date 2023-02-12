@@ -1,7 +1,5 @@
 package org.syh.prj.rpc.simplerpc.core.client;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
@@ -19,6 +17,10 @@ import org.syh.prj.rpc.simplerpc.core.common.protocol.RpcEncoder;
 import org.syh.prj.rpc.simplerpc.core.common.protocol.RpcInvocation;
 import org.syh.prj.rpc.simplerpc.core.common.protocol.RpcProtocol;
 import org.syh.prj.rpc.simplerpc.core.common.utils.CommonUtils;
+import org.syh.prj.rpc.simplerpc.core.filter.client.ClientFilterChain;
+import org.syh.prj.rpc.simplerpc.core.filter.client.ClientLogFilterImpl;
+import org.syh.prj.rpc.simplerpc.core.filter.client.DirectInvokeFilterImpl;
+import org.syh.prj.rpc.simplerpc.core.filter.client.GroupFilterImpl;
 import org.syh.prj.rpc.simplerpc.core.proxy.jdk.JDKProxyFactory;
 import org.syh.prj.rpc.simplerpc.core.registry.URL;
 import org.syh.prj.rpc.simplerpc.core.registry.zookeeper.AbstractRegister;
@@ -31,21 +33,24 @@ import org.syh.prj.rpc.simplerpc.core.serialize.jdk.JdkSerializeFactory;
 import org.syh.prj.rpc.simplerpc.core.serialize.kryo.KryoSerializeFactory;
 import org.syh.prj.rpc.simplerpc.interfaces.DataService;
 import org.syh.prj.rpc.simplerpc.core.proxy.javassit.JavassitProxyFactory;
+import org.syh.prj.rpc.simplerpc.interfaces.UserService;
 
 import java.util.List;
 import java.util.Map;
 
+import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonClientCache.CLIENT_FILTER_CHAIN;
 import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonClientCache.SEND_QUEUE;
 import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonClientCache.SUBSCRIBE_SERVICE_LIST;
 import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonClientCache.RPC_ROUTER;
 import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonClientCache.URL_MAP;
 import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonClientCache.CLIENT_SERIALIZE_FACTORY;
+import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonClientCache.CLIENT_CONFIG;
 import static org.syh.prj.rpc.simplerpc.core.common.constants.RpcConstants.HESSIAN_SERIALIZE_TYPE;
 import static org.syh.prj.rpc.simplerpc.core.common.constants.RpcConstants.JACKSON_SERIALIZE_TYPE;
 import static org.syh.prj.rpc.simplerpc.core.common.constants.RpcConstants.JAVASSIT_PROXY;
-import static org.syh.prj.rpc.simplerpc.core.common.constants.RpcConstants.JDK_SERIALIZE_TYPE;
 import static org.syh.prj.rpc.simplerpc.core.common.constants.RpcConstants.KRYO_SERIALIZE_TYPE;
 import static org.syh.prj.rpc.simplerpc.core.common.constants.RpcConstants.RANDOM_ROUTER_TYPE;
+
 
 public class Client {
     private final Logger logger = LogManager.getLogger(Client.class);
@@ -81,9 +86,10 @@ public class Client {
         });
 
         simpleRpcListenerLoader = new SimpleRpcListenerLoader();
-        simpleRpcListenerLoader.init(); // The listener will update CONNECT_MAP
+        simpleRpcListenerLoader.init();
 
         clientConfig = PropertiesBootstrap.loadClientConfigFromLocal();
+        CLIENT_CONFIG = this.clientConfig;
 
         RpcReference rpcReference;
         if (JAVASSIT_PROXY.equals(clientConfig.getProxyType())) {
@@ -119,6 +125,12 @@ public class Client {
             default:
                 CLIENT_SERIALIZE_FACTORY = new JdkSerializeFactory();
         }
+
+        ClientFilterChain clientFilterChain = new ClientFilterChain();
+        clientFilterChain.addClientFilter(new DirectInvokeFilterImpl());;
+        clientFilterChain.addClientFilter(new GroupFilterImpl());
+        clientFilterChain.addClientFilter(new ClientLogFilterImpl());
+        CLIENT_FILTER_CHAIN = clientFilterChain;
     }
 
     public void doSubscribeService(Class serviceBean) {
@@ -167,10 +179,12 @@ public class Client {
         public void run() {
             while (true) {
                 try {
-                    RpcInvocation data = SEND_QUEUE.take();
-                    RpcProtocol rpcProtocol = new RpcProtocol(CLIENT_SERIALIZE_FACTORY.serialize(data));
-                    ChannelFuture channelFuture = ConnectionHandler.getChannelFuture(data.getTargetServiceName());
-                    channelFuture.channel().writeAndFlush(rpcProtocol);
+                    RpcInvocation rpcInvocation = SEND_QUEUE.take();
+                    ChannelFuture channelFuture = ConnectionHandler.getChannelFuture(rpcInvocation);
+                    if (channelFuture != null) {
+                        RpcProtocol rpcProtocol = new RpcProtocol(CLIENT_SERIALIZE_FACTORY.serialize(rpcInvocation));
+                        channelFuture.channel().writeAndFlush(rpcProtocol);
+                    }
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -182,12 +196,18 @@ public class Client {
         Client client = new Client();
         RpcReference rpcReference = client.initClientApplication();
         client.initClientConfig();
-        DataService dataService = rpcReference.get(DataService.class);
+
         client.doSubscribeService(DataService.class);
+        client.doSubscribeService(UserService.class);
         ConnectionHandler.setBootstrap(client.getBootstrap());
         client.doConnectServer();
         client.startClient();
 
+        RpcReferenceWrapper<DataService> rpcReferenceDataServiceWrapper = new RpcReferenceWrapper<>();
+        rpcReferenceDataServiceWrapper.setAimClass(DataService.class);
+        rpcReferenceDataServiceWrapper.setGroup("dev");
+        rpcReferenceDataServiceWrapper.setServiceToken("token-picea");
+        DataService dataService = rpcReference.get(rpcReferenceDataServiceWrapper);
         for (int i = 0; i < 10; i++) {
             try {
                 String result = dataService.sendData("test");
@@ -199,6 +219,15 @@ public class Client {
         }
         List<String> results = dataService.getList();
         System.out.println(results);
+
+        RpcReferenceWrapper<UserService> rpcReferenceUserServiceWrapper = new RpcReferenceWrapper<>();
+        rpcReferenceUserServiceWrapper.setAimClass(UserService.class);
+        rpcReferenceUserServiceWrapper.setGroup("dev");
+        rpcReferenceUserServiceWrapper.setServiceToken("token-abies");
+        UserService userService = rpcReference.get(rpcReferenceUserServiceWrapper);
+        List<String> users = userService.getUsers();
+        System.out.println(users);
+
         System.out.println("Done");
     }
 }

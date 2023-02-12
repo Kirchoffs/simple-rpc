@@ -53,9 +53,10 @@ public class URL {
         String host = url.getParameters().get("host");
         String port = url.getParameters().get("port");
         String weight = url.getParameters().get("weight");
+        String group = url.getParameters().get("group");
         return String.format(
-            "%s;%s;%s:%s;%d;%s",
-            url.getApplicationName(), url.getServiceName(), host, port, System.currentTimeMillis(), weight
+            "%s;%s;%s;%s;%d;%s;%s",
+            url.getApplicationName(), url.getServiceName(), host, port, System.currentTimeMillis(), weight, group
         );
     }
 
@@ -75,8 +76,9 @@ public class URL {
         ProviderNodeInfo providerNodeInfo = new ProviderNodeInfo();
         providerNodeInfo.setServiceName(items[1]);
         providerNodeInfo.setAddress(items[2] + ":" + items[3]);
-        providerNodeInfo.setWeight(Integer.valueOf(items[5]));
         providerNodeInfo.setRegistryTime(new Date(Long.parseLong(items[4])).toString());
+        providerNodeInfo.setWeight(Integer.valueOf(items[5]));
+        providerNodeInfo.setGroup(items[6]);
         return providerNodeInfo;
     }
 }

@@ -8,10 +8,11 @@ public class URLTest {
     @Test
     public void testBuildURLFromUrlStr() {
         ProviderNodeInfo providerNodeInfo = URL.buildProviderNodeInfoFromDataStr(
-            "simple-rpc;org.syh.prj.rpc.simplerpc.interfaces.DataService;192.168.43.227;9092;1673245665319;200"
+            "simple-rpc;org.syh.prj.rpc.simplerpc.interfaces.DataService;192.168.43.227;9092;1673245665319;200;dev"
         );
         System.out.println(providerNodeInfo);
         Assertions.assertEquals("org.syh.prj.rpc.simplerpc.interfaces.DataService", providerNodeInfo.getServiceName());
         Assertions.assertEquals("192.168.43.227:9092", providerNodeInfo.getAddress());
+        Assertions.assertEquals("dev", providerNodeInfo.getGroup());
     }
 }

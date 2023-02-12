@@ -2,6 +2,8 @@ package org.syh.prj.rpc.simplerpc.core.common.protocol;
 
 import java.io.Serializable;
 import java.util.Arrays;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class RpcInvocation implements Serializable {
     private String targetMethod;
@@ -13,6 +15,8 @@ public class RpcInvocation implements Serializable {
     private String uuid;
 
     private Object response;
+
+    private Map<String, Object> attachments = new ConcurrentHashMap<>();
 
     public Object getResponse() {
         return response;
@@ -52,6 +56,14 @@ public class RpcInvocation implements Serializable {
 
     public void setArgs(Object[] args) {
         this.args = args;
+    }
+
+    public Map<String, Object> getAttachments() {
+        return attachments;
+    }
+
+    public void setAttachments(Map<String, Object> attachments) {
+        this.attachments = attachments;
     }
 
     @Override

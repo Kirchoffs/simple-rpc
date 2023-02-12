@@ -54,6 +54,7 @@ go through the `PROVIDER_URL_SET` and register with the Zookeeper.
 
 
 5\. How does router work?  
+
 In `Client.java`, we have an async job kept running to send the request to the corresponding service.
 ```
 class AsyncSendJob implements Runnable {
@@ -82,6 +83,10 @@ Here we have `ConnectionHandler.getChannelFuture()` method, inside it:
 ChannelFuture channelFuture = RPC_ROUTER.select(selector).getChannelFuture();
 ```
 
+6\. Difference between RpcProtocol and RpcInvocation
+
+RpcProtocol is implemented to avoid TCP packet coalescing and TCP packet fragmentation, while RpcInvocation contains the 
+actual data that we need to transfer.
 
 ## Netty Notes
 ### ChannelFuture

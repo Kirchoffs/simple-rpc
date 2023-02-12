@@ -41,7 +41,7 @@ public class CommonUtils {
                 }
             }
         } catch (Exception e) {
-            System.err.println("failed to get IP address: " + e.toString());
+            System.err.println("failed to get IP address: " + e);
         }
         return "";
     }

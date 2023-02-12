@@ -1,21 +1,23 @@
 package org.syh.prj.rpc.simplerpc.core.common.utils;
 
+import org.syh.prj.rpc.simplerpc.core.router.Selector;
+
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
-
-import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonClientCache.SERVICE_ROUTER_MAP;
 
 public class ChannelFuturePollingRef {
     private Map<String, AtomicLong> referenceTimesMap = new HashMap<>();
 
-    public ChannelFutureWrapper getChannelFutureWrapper(String serviceName){
-        ChannelFutureWrapper[] arr = SERVICE_ROUTER_MAP.get(serviceName);
+    public ChannelFutureWrapper getChannelFutureWrapper(Selector selector){
+        String serviceName = selector.getProviderServiceName();
+        List<ChannelFutureWrapper> arr = selector.getChannelFutureWrappers();
         if (!referenceTimesMap.containsKey(serviceName)) {
             referenceTimesMap.put(serviceName, new AtomicLong(0));
         }
         long choice = referenceTimesMap.get(serviceName).getAndIncrement();
-        int index = (int) (choice % arr.length);
-        return arr[index];
+        int index = (int) (choice % arr.size());
+        return arr.get(index);
     }
 }

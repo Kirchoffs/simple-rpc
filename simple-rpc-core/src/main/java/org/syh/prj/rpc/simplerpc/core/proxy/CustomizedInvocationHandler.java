@@ -1,5 +1,6 @@
 package org.syh.prj.rpc.simplerpc.core.proxy;
 
+import org.syh.prj.rpc.simplerpc.core.client.RpcReferenceWrapper;
 import org.syh.prj.rpc.simplerpc.core.common.protocol.RpcInvocation;
 
 import java.lang.reflect.InvocationHandler;
@@ -13,10 +14,10 @@ import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonClientCache.SEND
 public class CustomizedInvocationHandler implements InvocationHandler {
     private final static Object OBJECT = new Object();
 
-    private Class<?> clazz;
+    private RpcReferenceWrapper rpcReferenceWrapper;
 
-    public CustomizedInvocationHandler(Class<?> clazz) {
-        this.clazz = clazz;
+    public CustomizedInvocationHandler(RpcReferenceWrapper rpcReferenceWrapper) {
+        this.rpcReferenceWrapper = rpcReferenceWrapper;
     }
 
     @Override
@@ -24,8 +25,9 @@ public class CustomizedInvocationHandler implements InvocationHandler {
         RpcInvocation rpcInvocation = new RpcInvocation();
         rpcInvocation.setArgs(args);
         rpcInvocation.setTargetMethod(method.getName());
-        rpcInvocation.setTargetServiceName(clazz.getName());
+        rpcInvocation.setTargetServiceName(rpcReferenceWrapper.getAimClass().getName());
         rpcInvocation.setUuid(UUID.randomUUID().toString());
+        rpcInvocation.setAttachments(rpcReferenceWrapper.getAttachments());
 
         RESP_MAP.put(rpcInvocation.getUuid(), OBJECT);
         SEND_QUEUE.add(rpcInvocation);

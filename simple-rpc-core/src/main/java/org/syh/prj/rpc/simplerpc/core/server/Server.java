@@ -12,6 +12,9 @@ import org.syh.prj.rpc.simplerpc.core.common.protocol.RpcDecoder;
 import org.syh.prj.rpc.simplerpc.core.common.protocol.RpcEncoder;
 import org.syh.prj.rpc.simplerpc.core.common.config.ServerConfig;
 import org.syh.prj.rpc.simplerpc.core.common.utils.CommonUtils;
+import org.syh.prj.rpc.simplerpc.core.filter.server.ServerFilterChain;
+import org.syh.prj.rpc.simplerpc.core.filter.server.ServerLogFilterImpl;
+import org.syh.prj.rpc.simplerpc.core.filter.server.ServerTokenFilterImpl;
 import org.syh.prj.rpc.simplerpc.core.registry.RegistryService;
 import org.syh.prj.rpc.simplerpc.core.registry.URL;
 import org.syh.prj.rpc.simplerpc.core.registry.zookeeper.ZookeeperRegister;
@@ -22,14 +25,16 @@ import org.syh.prj.rpc.simplerpc.core.serialize.kryo.KryoSerializeFactory;
 
 import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonClientCache.CLIENT_SERIALIZE_FACTORY;
 import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonServerCache.PROVIDER_CLASS_MAP;
+import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonServerCache.PROVIDER_SERVICE_WRAPPER_MAP;
 import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonServerCache.PROVIDER_URL_SET;
+import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonServerCache.SERVER_CONFIG;
+import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonServerCache.SERVER_FILTER_CHAIN;
 import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonServerCache.SERVER_SERIALIZE_FACTORY;
 import static org.syh.prj.rpc.simplerpc.core.common.constants.RpcConstants.HESSIAN_SERIALIZE_TYPE;
 import static org.syh.prj.rpc.simplerpc.core.common.constants.RpcConstants.JACKSON_SERIALIZE_TYPE;
 import static org.syh.prj.rpc.simplerpc.core.common.constants.RpcConstants.KRYO_SERIALIZE_TYPE;
 
 public class Server {
-
     private static EventLoopGroup bossGroup = null;
     private static EventLoopGroup workerGroup = null;
 
@@ -68,13 +73,13 @@ public class Server {
             }
         });
 
-        this.batchExportUrl();
+        this.batchRegisterUrl();
         bootstrap.bind(serverConfig.getServerPort()).sync();
     }
 
     public void initServerConfig() {
-        ServerConfig serverConfig = PropertiesBootstrap.loadServerConfigFromLocal();
-        this.setServerConfig(serverConfig);
+        serverConfig = PropertiesBootstrap.loadServerConfigFromLocal();
+        SERVER_CONFIG = serverConfig;
 
         String serverSerialize = serverConfig.getServerSerialize();
         switch (serverSerialize) {
@@ -90,13 +95,15 @@ public class Server {
             default:
                 SERVER_SERIALIZE_FACTORY = new JdkSerializeFactory();
         }
+
+        ServerFilterChain serverFilterChain = new ServerFilterChain();
+        serverFilterChain.addServerFilter(new ServerLogFilterImpl());
+        serverFilterChain.addServerFilter(new ServerTokenFilterImpl());
+        SERVER_FILTER_CHAIN = serverFilterChain;
     }
 
-    public void exportService(Object serviceBean) {
-        exportService(serviceBean, 100);
-    }
-
-    public void exportService(Object serviceBean, int weight) {
+    public void exportService(ServiceWrapper serviceWrapper) {
+        Object serviceBean = serviceWrapper.getServiceObj();
         if (serviceBean.getClass().getInterfaces().length == 0) {
             throw new RuntimeException("service should have interfaces!");
         }
@@ -117,11 +124,13 @@ public class Server {
         url.setApplicationName(serverConfig.getApplicationName());
         url.addParameter("host", CommonUtils.getIpAddress());
         url.addParameter("port", String.valueOf(serverConfig.getServerPort()));
-        url.addParameter("weight", String.valueOf(weight));
+        url.addParameter("weight", String.valueOf(serviceWrapper.getWeight()));
+        url.addParameter("group", serviceWrapper.getGroup());
         PROVIDER_URL_SET.add(url);
+        PROVIDER_SERVICE_WRAPPER_MAP.put(interfaceClass.getName(), serviceWrapper);
     }
 
-    public void batchExportUrl() {
+    public void batchRegisterUrl() {
         Thread task = new Thread(new Runnable() {
             @Override
             public void run() {
@@ -143,7 +152,20 @@ public class Server {
     public static void main(String[] args) throws InterruptedException {
         Server server = new Server();
         server.initServerConfig();
-        server.exportService(new DataServiceImpl());
+
+        ServiceWrapper dataServiceWrapper = new ServiceWrapper(new DataServiceImpl(), "dev");
+        dataServiceWrapper.setServiceToken("token-picea");
+        dataServiceWrapper.setLimit(2);
+        dataServiceWrapper.setWeight(200);
+
+        ServiceWrapper userServiceWrapper = new ServiceWrapper(new UserServiceImpl(), "dev");
+        userServiceWrapper.setServiceToken("token-abies");
+        userServiceWrapper.setLimit(2);
+        dataServiceWrapper.setWeight(100);
+
+        server.exportService(dataServiceWrapper);
+        server.exportService(userServiceWrapper);
+
         server.startApplication();
     }
 }
