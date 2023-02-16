@@ -7,6 +7,7 @@ public class PropertiesBootstrap {
 
     public static final String SERVER_PORT = "simple-rpc.server-port";
     public static final String REGISTER_ADDRESS = "simple-rpc.register-addr";
+    public static final String REGISTER_TYPE = "simple-rpc.register-type";
     public static final String APPLICATION_NAME = "simple-rpc.application-name";
     public static final String PROXY_TYPE = "simple-rpc.proxy-type";
     public static final String ROUTER_STRATEGY = "simple-rpc.router-strategy";
@@ -24,6 +25,7 @@ public class PropertiesBootstrap {
         serverConfig.setServerPort(PropertiesLoader.getPropertiesInteger(SERVER_PORT));
         serverConfig.setApplicationName(PropertiesLoader.getPropertiesStr(APPLICATION_NAME));
         serverConfig.setRegisterAddr(PropertiesLoader.getPropertiesStr(REGISTER_ADDRESS));
+        serverConfig.setRegisterType(PropertiesLoader.getPropertiesStr(REGISTER_TYPE));
         serverConfig.setServerSerialize(PropertiesLoader.getPropertiesStr(SERVER_SERIALIZE));
 
         return serverConfig;
@@ -39,6 +41,7 @@ public class PropertiesBootstrap {
         ClientConfig clientConfig = new ClientConfig();
         clientConfig.setApplicationName(PropertiesLoader.getPropertiesStr(APPLICATION_NAME));
         clientConfig.setRegisterAddr(PropertiesLoader.getPropertiesStr(REGISTER_ADDRESS));
+        clientConfig.setRegisterType(PropertiesLoader.getPropertiesStr(REGISTER_TYPE));
         clientConfig.setProxyType(PropertiesLoader.getPropertiesStr(PROXY_TYPE));
         clientConfig.setRouterStrategy(PropertiesLoader.getPropertiesStr(ROUTER_STRATEGY));
         clientConfig.setClientSerialize(PropertiesLoader.getPropertiesStr(CLIENT_SERIALIZE));

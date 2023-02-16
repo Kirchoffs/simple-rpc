@@ -1,0 +1,3 @@
+clientLogFilterImpl=org.syh.prj.rpc.simplerpc.core.filter.client.ClientLogFilterImpl
+directInvokeFilterImpl=org.syh.prj.rpc.simplerpc.core.filter.client.DirectInvokeFilterImpl
+groupFilterImpl=org.syh.prj.rpc.simplerpc.core.filter.client.GroupFilterImpl

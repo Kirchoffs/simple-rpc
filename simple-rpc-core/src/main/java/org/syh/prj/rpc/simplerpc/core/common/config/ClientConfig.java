@@ -5,6 +5,8 @@ public class ClientConfig {
 
     private String registerAddr;
 
+    private String registerType;
+
     private String proxyType;
 
     private String routerStrategy;
@@ -27,6 +29,14 @@ public class ClientConfig {
         this.registerAddr = registerAddr;
     }
 
+    public String getRegisterType() {
+        return registerType;
+    }
+
+    public void setRegisterType(String registerType) {
+        this.registerType = registerType;
+    }
+
     public String getProxyType() {
         return proxyType;
     }
@@ -36,7 +46,7 @@ public class ClientConfig {
     }
 
     public String getRouterStrategy() {
-        return registerAddr;
+        return routerStrategy;
     }
 
     public void setRouterStrategy(String routerStrategy) {

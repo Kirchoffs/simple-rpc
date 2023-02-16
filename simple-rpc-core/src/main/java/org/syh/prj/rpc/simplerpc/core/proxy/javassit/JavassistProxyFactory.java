@@ -7,7 +7,7 @@ import org.syh.prj.rpc.simplerpc.core.client.RpcReferenceWrapper;
 import org.syh.prj.rpc.simplerpc.core.proxy.CustomizedInvocationHandler;
 import org.syh.prj.rpc.simplerpc.core.proxy.ProxyFactory;
 
-public class JavassitProxyFactory implements ProxyFactory {
+public class JavassistProxyFactory implements ProxyFactory {
     private final Logger logger = LogManager.getLogger(Client.class);
 
     @Override

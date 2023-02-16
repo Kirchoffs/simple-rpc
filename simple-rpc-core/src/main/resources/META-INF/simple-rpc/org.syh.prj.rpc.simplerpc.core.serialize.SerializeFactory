@@ -1,0 +1,4 @@
+jdk=org.syh.prj.rpc.simplerpc.core.serialize.jdk.JdkSerializeFactory
+jackson=org.syh.prj.rpc.simplerpc.core.serialize.jackson.JacksonSerializeFactory
+hessian=org.syh.prj.rpc.simplerpc.core.serialize.hessian.HessianSerializeFactory
+kryo=org.syh.prj.rpc.simplerpc.core.serialize.kryo.KryoSerializeFactory

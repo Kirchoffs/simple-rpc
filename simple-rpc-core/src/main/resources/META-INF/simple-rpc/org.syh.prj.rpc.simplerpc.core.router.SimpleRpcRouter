@@ -1,0 +1,2 @@
+default=org.syh.prj.rpc.simplerpc.core.router.impl.DefaultRpcRouterImpl
+weighted=org.syh.prj.rpc.simplerpc.core.router.impl.WeightedRpcRouterImpl

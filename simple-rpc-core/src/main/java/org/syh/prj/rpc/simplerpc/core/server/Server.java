@@ -12,16 +12,23 @@ import org.syh.prj.rpc.simplerpc.core.common.protocol.RpcDecoder;
 import org.syh.prj.rpc.simplerpc.core.common.protocol.RpcEncoder;
 import org.syh.prj.rpc.simplerpc.core.common.config.ServerConfig;
 import org.syh.prj.rpc.simplerpc.core.common.utils.CommonUtils;
+import org.syh.prj.rpc.simplerpc.core.filter.ServerFilter;
 import org.syh.prj.rpc.simplerpc.core.filter.server.ServerFilterChain;
 import org.syh.prj.rpc.simplerpc.core.filter.server.ServerLogFilterImpl;
 import org.syh.prj.rpc.simplerpc.core.filter.server.ServerTokenFilterImpl;
 import org.syh.prj.rpc.simplerpc.core.registry.RegistryService;
 import org.syh.prj.rpc.simplerpc.core.registry.URL;
+import org.syh.prj.rpc.simplerpc.core.registry.zookeeper.AbstractRegister;
 import org.syh.prj.rpc.simplerpc.core.registry.zookeeper.ZookeeperRegister;
+import org.syh.prj.rpc.simplerpc.core.serialize.SerializeFactory;
 import org.syh.prj.rpc.simplerpc.core.serialize.hessian.HessianSerializeFactory;
 import org.syh.prj.rpc.simplerpc.core.serialize.jackson.JacksonSerializeFactory;
 import org.syh.prj.rpc.simplerpc.core.serialize.jdk.JdkSerializeFactory;
 import org.syh.prj.rpc.simplerpc.core.serialize.kryo.KryoSerializeFactory;
+import org.syh.prj.rpc.simplerpc.core.spi.ExtensionLoader;
+
+import java.io.IOException;
+import java.util.List;
 
 import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonClientCache.CLIENT_SERIALIZE_FACTORY;
 import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonServerCache.PROVIDER_CLASS_MAP;
@@ -41,6 +48,8 @@ public class Server {
     private ServerConfig serverConfig;
 
     private RegistryService registryService;
+
+    private ExtensionLoader extensionLoader = new ExtensionLoader();
 
     public ServerConfig getServerConfig() {
         return serverConfig;
@@ -77,28 +86,19 @@ public class Server {
         bootstrap.bind(serverConfig.getServerPort()).sync();
     }
 
-    public void initServerConfig() {
+    public void initServerConfig()
+        throws IOException, ClassNotFoundException, InstantiationException, IllegalAccessException {
         serverConfig = PropertiesBootstrap.loadServerConfigFromLocal();
         SERVER_CONFIG = serverConfig;
 
-        String serverSerialize = serverConfig.getServerSerialize();
-        switch (serverSerialize) {
-            case JACKSON_SERIALIZE_TYPE:
-                SERVER_SERIALIZE_FACTORY = new JacksonSerializeFactory();
-                break;
-            case HESSIAN_SERIALIZE_TYPE:
-                SERVER_SERIALIZE_FACTORY = new HessianSerializeFactory();
-                break;
-            case KRYO_SERIALIZE_TYPE:
-                SERVER_SERIALIZE_FACTORY = new KryoSerializeFactory();
-                break;
-            default:
-                SERVER_SERIALIZE_FACTORY = new JdkSerializeFactory();
-        }
+        Class<?> serialClass = extensionLoader.getActualClass(SerializeFactory.class, serverConfig.getServerSerialize());
+        SERVER_SERIALIZE_FACTORY = (SerializeFactory) serialClass.newInstance();
 
         ServerFilterChain serverFilterChain = new ServerFilterChain();
-        serverFilterChain.addServerFilter(new ServerLogFilterImpl());
-        serverFilterChain.addServerFilter(new ServerTokenFilterImpl());
+        List<Class<?>> serverFilterClassList = extensionLoader.getActualClassList(ServerFilter.class);
+        for (Class<?> clazz: serverFilterClassList) {
+            serverFilterChain.addServerFilter((ServerFilter) clazz.newInstance());
+        }
         SERVER_FILTER_CHAIN = serverFilterChain;
     }
 
@@ -114,7 +114,12 @@ public class Server {
         }
 
         if (registryService == null) {
-            registryService = new ZookeeperRegister(serverConfig.getRegisterAddr());
+            try {
+                Class<?> registerClass = extensionLoader.getActualClass(RegistryService.class, serverConfig.getRegisterType());
+                registryService = (AbstractRegister) registerClass.newInstance();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
         }
 
         Class interfaceClass = classes[0];
@@ -149,7 +154,7 @@ public class Server {
         task.start();
     }
 
-    public static void main(String[] args) throws InterruptedException {
+    public static void main(String[] args) throws Exception {
         Server server = new Server();
         server.initServerConfig();
 

@@ -1,0 +1,2 @@
+jdk=org.syh.prj.rpc.simplerpc.core.proxy.jdk.JDKProxyFactory
+javassist=org.syh.prj.rpc.simplerpc.core.proxy.javassit.JavassistProxyFactory
