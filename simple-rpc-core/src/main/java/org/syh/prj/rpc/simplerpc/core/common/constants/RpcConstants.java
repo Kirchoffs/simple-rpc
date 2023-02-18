@@ -9,4 +9,6 @@ public class RpcConstants {
     public static final String JACKSON_SERIALIZE_TYPE = "jackson";
     public static final String HESSIAN_SERIALIZE_TYPE = "hessian";
     public static final String KRYO_SERIALIZE_TYPE = "kryo";
+    public static final Integer DEFAULT_QUEUE_SIZE = 512;
+    public static final Integer DEFAULT_THREAD_NUMS = 256;
 }

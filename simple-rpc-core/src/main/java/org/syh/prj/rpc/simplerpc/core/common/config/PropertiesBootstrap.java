@@ -2,6 +2,9 @@ package org.syh.prj.rpc.simplerpc.core.common.config;
 
 import java.io.IOException;
 
+import static org.syh.prj.rpc.simplerpc.core.common.constants.RpcConstants.DEFAULT_QUEUE_SIZE;
+import static org.syh.prj.rpc.simplerpc.core.common.constants.RpcConstants.DEFAULT_THREAD_NUMS;
+
 public class PropertiesBootstrap {
     private volatile boolean configIsReady;
 
@@ -13,6 +16,8 @@ public class PropertiesBootstrap {
     public static final String ROUTER_STRATEGY = "simple-rpc.router-strategy";
     public static final String CLIENT_SERIALIZE = "simple-rpc.client-serialize";
     public static final String SERVER_SERIALIZE = "simple-rpc.server-serialize";
+    public static final String SERVER_QUEUE_SIZE = "simple-rpc.server-queue-size";
+    public static final String SERVER_BIZ_THREAD_NUMS = "simple-rpc.server-biz-thread-nums";
 
     public static ServerConfig loadServerConfigFromLocal() {
         try {
@@ -27,6 +32,8 @@ public class PropertiesBootstrap {
         serverConfig.setRegisterAddr(PropertiesLoader.getPropertiesStr(REGISTER_ADDRESS));
         serverConfig.setRegisterType(PropertiesLoader.getPropertiesStr(REGISTER_TYPE));
         serverConfig.setServerSerialize(PropertiesLoader.getPropertiesStr(SERVER_SERIALIZE));
+        serverConfig.setServerQueueSize(PropertiesLoader.getPropertiesInteger(SERVER_QUEUE_SIZE, DEFAULT_QUEUE_SIZE));
+        serverConfig.setServerBizThreadNums(PropertiesLoader.getPropertiesInteger(SERVER_BIZ_THREAD_NUMS, DEFAULT_THREAD_NUMS));
 
         return serverConfig;
     }

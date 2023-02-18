@@ -1,7 +1,6 @@
 package org.syh.prj.rpc.simplerpc.core.server;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
@@ -12,6 +11,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
 import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonServerCache.PROVIDER_CLASS_MAP;
+import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonServerCache.SERVER_CHANNEL_DISPATCHER;
 import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonServerCache.SERVER_FILTER_CHAIN;
 import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonServerCache.SERVER_SERIALIZE_FACTORY;
 
@@ -19,25 +19,10 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws InvocationTargetException, IllegalAccessException, JsonProcessingException {
-        RpcProtocol rpcProtocol = (RpcProtocol) msg;
-        RpcInvocation rpcInvocation = SERVER_SERIALIZE_FACTORY.deserialize(rpcProtocol.getContent(), RpcInvocation.class);
-        SERVER_FILTER_CHAIN.doFilter(rpcInvocation);
-        Object aimObject = PROVIDER_CLASS_MAP.get(rpcInvocation.getTargetServiceName());
-        Method[] methods = aimObject.getClass().getDeclaredMethods();
-        Object result = null;
-        for (Method method: methods) {
-            if (method.getName().equals(rpcInvocation.getTargetMethod())) {
-                if (method.getReturnType().equals(Void.TYPE)) {
-                    method.invoke(aimObject, rpcInvocation.getArgs());
-                } else {
-                    result = method.invoke(aimObject, rpcInvocation.getArgs());
-                }
-                break;
-            }
-        }
-        rpcInvocation.setResponse(result);
-        RpcProtocol respRpcProtocol = new RpcProtocol(SERVER_SERIALIZE_FACTORY.serialize(rpcInvocation));
-        ctx.writeAndFlush(respRpcProtocol);
+        ServerChannelReadData serverChannelReadData = new ServerChannelReadData();
+        serverChannelReadData.setRpcProtocol((RpcProtocol) msg);
+        serverChannelReadData.setChannelHandlerContext(ctx);
+        SERVER_CHANNEL_DISPATCHER.add(serverChannelReadData);
     }
 
     @Override

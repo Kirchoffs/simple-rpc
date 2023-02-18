@@ -25,7 +25,7 @@ public class RpcReferenceWrapper<T> {
     }
 
     public boolean isAsync(){
-        return Boolean.valueOf(String.valueOf(attachments.get("async")));
+        return Boolean.valueOf(String.valueOf(attachments.getOrDefault("async", "false")));
     }
 
     public void setAsync(boolean async){

@@ -11,6 +11,10 @@ public class ServerConfig {
 
     private String serverSerialize;
 
+    private Integer serverBizThreadNums;
+
+    private Integer serverQueueSize;
+
     public String getRegisterAddr() {
         return registerAddr;
     }
@@ -49,5 +53,21 @@ public class ServerConfig {
 
     public void setServerSerialize(String serverSerialize) {
         this.serverSerialize = serverSerialize;
+    }
+
+    public Integer getServerBizThreadNums() {
+        return serverBizThreadNums;
+    }
+
+    public void setServerBizThreadNums(Integer serverBizThreadNums) {
+        this.serverBizThreadNums = serverBizThreadNums;
+    }
+
+    public Integer getServerQueueSize() {
+        return serverQueueSize;
+    }
+
+    public void setServerQueueSize(Integer serverQueueSize) {
+        this.serverQueueSize = serverQueueSize;
     }
 }

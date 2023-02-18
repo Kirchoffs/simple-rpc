@@ -1,6 +1,7 @@
 package org.syh.prj.rpc.simplerpc.core.common.cache;
 
 import org.syh.prj.rpc.simplerpc.core.common.config.ServerConfig;
+import org.syh.prj.rpc.simplerpc.core.dispatcher.ServerChannelDispatcher;
 import org.syh.prj.rpc.simplerpc.core.filter.server.ServerFilterChain;
 import org.syh.prj.rpc.simplerpc.core.registry.URL;
 import org.syh.prj.rpc.simplerpc.core.serialize.SerializeFactory;
@@ -24,4 +25,5 @@ public class CommonServerCache {
     public static final Map<String, ServiceWrapper> PROVIDER_SERVICE_WRAPPER_MAP = new ConcurrentHashMap<>();
     public static ServerFilterChain SERVER_FILTER_CHAIN;
     public static ServerConfig SERVER_CONFIG;
+    public static ServerChannelDispatcher SERVER_CHANNEL_DISPATCHER = new ServerChannelDispatcher();
 }

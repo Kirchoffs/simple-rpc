@@ -184,6 +184,7 @@ public class Client {
         rpcReferenceDataServiceWrapper.setAimClass(DataService.class);
         rpcReferenceDataServiceWrapper.setGroup("dev");
         rpcReferenceDataServiceWrapper.setServiceToken("token-picea");
+        rpcReferenceDataServiceWrapper.setAsync(false);
         DataService dataService = rpcReference.get(rpcReferenceDataServiceWrapper);
         for (int i = 0; i < 10; i++) {
             try {

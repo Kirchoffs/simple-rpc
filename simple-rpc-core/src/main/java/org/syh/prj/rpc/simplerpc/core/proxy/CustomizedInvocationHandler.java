@@ -29,8 +29,12 @@ public class CustomizedInvocationHandler implements InvocationHandler {
         rpcInvocation.setUuid(UUID.randomUUID().toString());
         rpcInvocation.setAttachments(rpcReferenceWrapper.getAttachments());
 
-        RESP_MAP.put(rpcInvocation.getUuid(), OBJECT);
         SEND_QUEUE.add(rpcInvocation);
+        if (rpcReferenceWrapper.isAsync()) {
+            return null;
+        }
+
+        RESP_MAP.put(rpcInvocation.getUuid(), OBJECT);
 
         long beginTime = System.currentTimeMillis();
         while (System.currentTimeMillis() - beginTime < 3 * 1000) {

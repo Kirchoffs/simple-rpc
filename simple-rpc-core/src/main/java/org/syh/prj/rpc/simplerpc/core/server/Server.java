@@ -14,32 +14,22 @@ import org.syh.prj.rpc.simplerpc.core.common.config.ServerConfig;
 import org.syh.prj.rpc.simplerpc.core.common.utils.CommonUtils;
 import org.syh.prj.rpc.simplerpc.core.filter.ServerFilter;
 import org.syh.prj.rpc.simplerpc.core.filter.server.ServerFilterChain;
-import org.syh.prj.rpc.simplerpc.core.filter.server.ServerLogFilterImpl;
-import org.syh.prj.rpc.simplerpc.core.filter.server.ServerTokenFilterImpl;
 import org.syh.prj.rpc.simplerpc.core.registry.RegistryService;
 import org.syh.prj.rpc.simplerpc.core.registry.URL;
 import org.syh.prj.rpc.simplerpc.core.registry.zookeeper.AbstractRegister;
-import org.syh.prj.rpc.simplerpc.core.registry.zookeeper.ZookeeperRegister;
 import org.syh.prj.rpc.simplerpc.core.serialize.SerializeFactory;
-import org.syh.prj.rpc.simplerpc.core.serialize.hessian.HessianSerializeFactory;
-import org.syh.prj.rpc.simplerpc.core.serialize.jackson.JacksonSerializeFactory;
-import org.syh.prj.rpc.simplerpc.core.serialize.jdk.JdkSerializeFactory;
-import org.syh.prj.rpc.simplerpc.core.serialize.kryo.KryoSerializeFactory;
 import org.syh.prj.rpc.simplerpc.core.spi.ExtensionLoader;
 
 import java.io.IOException;
 import java.util.List;
 
-import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonClientCache.CLIENT_SERIALIZE_FACTORY;
 import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonServerCache.PROVIDER_CLASS_MAP;
 import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonServerCache.PROVIDER_SERVICE_WRAPPER_MAP;
 import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonServerCache.PROVIDER_URL_SET;
+import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonServerCache.SERVER_CHANNEL_DISPATCHER;
 import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonServerCache.SERVER_CONFIG;
 import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonServerCache.SERVER_FILTER_CHAIN;
 import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonServerCache.SERVER_SERIALIZE_FACTORY;
-import static org.syh.prj.rpc.simplerpc.core.common.constants.RpcConstants.HESSIAN_SERIALIZE_TYPE;
-import static org.syh.prj.rpc.simplerpc.core.common.constants.RpcConstants.JACKSON_SERIALIZE_TYPE;
-import static org.syh.prj.rpc.simplerpc.core.common.constants.RpcConstants.KRYO_SERIALIZE_TYPE;
 
 public class Server {
     private static EventLoopGroup bossGroup = null;
@@ -83,6 +73,7 @@ public class Server {
         });
 
         this.batchRegisterUrl();
+        SERVER_CHANNEL_DISPATCHER.startDataConsume();
         bootstrap.bind(serverConfig.getServerPort()).sync();
     }
 
@@ -90,6 +81,8 @@ public class Server {
         throws IOException, ClassNotFoundException, InstantiationException, IllegalAccessException {
         serverConfig = PropertiesBootstrap.loadServerConfigFromLocal();
         SERVER_CONFIG = serverConfig;
+
+        SERVER_CHANNEL_DISPATCHER.init(SERVER_CONFIG.getServerQueueSize(), SERVER_CONFIG.getServerBizThreadNums());
 
         Class<?> serialClass = extensionLoader.getActualClass(SerializeFactory.class, serverConfig.getServerSerialize());
         SERVER_SERIALIZE_FACTORY = (SerializeFactory) serialClass.newInstance();

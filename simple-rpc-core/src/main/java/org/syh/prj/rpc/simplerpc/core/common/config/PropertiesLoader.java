@@ -35,6 +35,19 @@ public class PropertiesLoader {
         return Integer.valueOf(getProperties(key));
     }
 
+    public static Integer getPropertiesInteger(String key, Integer defaultValue) {
+        Integer val;
+        try {
+            val = getPropertiesInteger(key);
+        } catch (Exception e) {
+            val = null;
+        }
+        if (val == null) {
+            return defaultValue;
+        }
+        return val;
+    }
+
     private static String getProperties(String key) {
         if (properties == null) {
             return null;
