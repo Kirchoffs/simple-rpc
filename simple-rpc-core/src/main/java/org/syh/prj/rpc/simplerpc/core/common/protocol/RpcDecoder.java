@@ -15,30 +15,20 @@ public class RpcDecoder extends ByteToMessageDecoder {
     @Override
     protected void decode(ChannelHandlerContext ctx, ByteBuf byteBuf, List<Object> out) throws Exception {
         if (byteBuf.readableBytes() >= BASE_LENGTH) {
-            if (byteBuf.readableBytes() > 1000) {
-                byteBuf.skipBytes(byteBuf.readableBytes());
-            }
-            int beginReader;
-            while (true) {
-                beginReader = byteBuf.readerIndex();
-                byteBuf.markReaderIndex();
-                if (byteBuf.readShort() == MAGIC_NUMBER) {
-                    break;
-                } else {
-                    ctx.close();
-                    return;
-                }
+            if (byteBuf.readShort() != MAGIC_NUMBER) {
+                ctx.close();
+                return;
             }
 
             int length = byteBuf.readInt();
             if (byteBuf.readableBytes() < length) {
-                byteBuf.readerIndex(beginReader);
+                ctx.close();
                 return;
             }
-            byte[] data = new byte[length];
-            byteBuf.readBytes(data);
-            RpcProtocol rpcProtocol = new RpcProtocol(data);
 
+            byte[] body = new byte[length];
+            byteBuf.readBytes(body);
+            RpcProtocol rpcProtocol = new RpcProtocol(body);
             out.add(rpcProtocol);
         }
     }

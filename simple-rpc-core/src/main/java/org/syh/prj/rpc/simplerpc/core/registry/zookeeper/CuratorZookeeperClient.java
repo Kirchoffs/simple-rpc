@@ -101,14 +101,14 @@ public class CuratorZookeeperClient extends AbstractZookeeperClient {
     public void createTemporaryData(String address, String data) {
         try {
             client.create().creatingParentContainersIfNeeded().withMode(CreateMode.EPHEMERAL).forPath(address, data.getBytes());
-        } catch (KeeperException.NoChildrenForEphemeralsException e) {
+        } catch (KeeperException.NoChildrenForEphemeralsException noChildrenForEphemeralsException) {
             try {
                 client.setData().forPath(address, data.getBytes());
-            } catch (Exception ex) {
-                throw new IllegalStateException(ex.getMessage(), ex);
+            } catch (Exception e) {
+                throw new IllegalStateException(e.getMessage(), e);
             }
-        } catch (Exception ex) {
-            throw new IllegalStateException(ex.getMessage(), ex);
+        } catch (Exception e) {
+            throw new IllegalStateException(e.getMessage(), e);
         }
     }
 
@@ -116,8 +116,8 @@ public class CuratorZookeeperClient extends AbstractZookeeperClient {
     public void setTemporaryData(String address, String data) {
         try {
             client.setData().forPath(address, data.getBytes());
-        } catch (Exception ex) {
-            throw new IllegalStateException(ex.getMessage(), ex);
+        } catch (Exception e) {
+            throw new IllegalStateException(e.getMessage(), e);
         }
     }
 

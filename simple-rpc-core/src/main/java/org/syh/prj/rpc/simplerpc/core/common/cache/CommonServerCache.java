@@ -2,9 +2,11 @@ package org.syh.prj.rpc.simplerpc.core.common.cache;
 
 import org.syh.prj.rpc.simplerpc.core.common.config.ServerConfig;
 import org.syh.prj.rpc.simplerpc.core.dispatcher.ServerChannelDispatcher;
-import org.syh.prj.rpc.simplerpc.core.filter.server.ServerFilterChain;
+import org.syh.prj.rpc.simplerpc.core.filter.server.ServerPostFilterChain;
+import org.syh.prj.rpc.simplerpc.core.filter.server.ServerPreFilterChain;
 import org.syh.prj.rpc.simplerpc.core.registry.URL;
 import org.syh.prj.rpc.simplerpc.core.serialize.SerializeFactory;
+import org.syh.prj.rpc.simplerpc.core.server.ServerServiceSemaphoreWrapper;
 import org.syh.prj.rpc.simplerpc.core.server.ServiceWrapper;
 
 import java.util.HashMap;
@@ -23,7 +25,9 @@ public class CommonServerCache {
 
     // {key: service interface name, value: service wrapper object}
     public static final Map<String, ServiceWrapper> PROVIDER_SERVICE_WRAPPER_MAP = new ConcurrentHashMap<>();
-    public static ServerFilterChain SERVER_FILTER_CHAIN;
+    public static ServerPreFilterChain SERVER_PRE_FILTER_CHAIN;
+    public static ServerPostFilterChain SERVER_POST_FILTER_CHAIN;
     public static ServerConfig SERVER_CONFIG;
     public static ServerChannelDispatcher SERVER_CHANNEL_DISPATCHER = new ServerChannelDispatcher();
+    public static final Map<String, ServerServiceSemaphoreWrapper> SERVER_SERVICE_SEMAPHORE_MAP = new ConcurrentHashMap<>(64);
 }

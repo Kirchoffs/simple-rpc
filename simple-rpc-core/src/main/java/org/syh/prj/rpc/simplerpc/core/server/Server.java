@@ -1,19 +1,26 @@
 package org.syh.prj.rpc.simplerpc.core.server;
 
 import io.netty.bootstrap.ServerBootstrap;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.handler.codec.DelimiterBasedFrameDecoder;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.syh.prj.rpc.simplerpc.core.common.annotations.SPI;
 import org.syh.prj.rpc.simplerpc.core.common.config.PropertiesBootstrap;
 import org.syh.prj.rpc.simplerpc.core.common.protocol.RpcDecoder;
 import org.syh.prj.rpc.simplerpc.core.common.protocol.RpcEncoder;
 import org.syh.prj.rpc.simplerpc.core.common.config.ServerConfig;
 import org.syh.prj.rpc.simplerpc.core.common.utils.CommonUtils;
 import org.syh.prj.rpc.simplerpc.core.filter.ServerFilter;
-import org.syh.prj.rpc.simplerpc.core.filter.server.ServerFilterChain;
+import org.syh.prj.rpc.simplerpc.core.filter.server.ServerPreFilterChain;
+import org.syh.prj.rpc.simplerpc.core.filter.server.ServerPostFilterChain;
 import org.syh.prj.rpc.simplerpc.core.registry.RegistryService;
 import org.syh.prj.rpc.simplerpc.core.registry.URL;
 import org.syh.prj.rpc.simplerpc.core.registry.zookeeper.AbstractRegister;
@@ -26,12 +33,17 @@ import java.util.List;
 import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonServerCache.PROVIDER_CLASS_MAP;
 import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonServerCache.PROVIDER_SERVICE_WRAPPER_MAP;
 import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonServerCache.PROVIDER_URL_SET;
+import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonServerCache.SERVER_PRE_FILTER_CHAIN;
+import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonServerCache.SERVER_POST_FILTER_CHAIN;
 import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonServerCache.SERVER_CHANNEL_DISPATCHER;
 import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonServerCache.SERVER_CONFIG;
-import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonServerCache.SERVER_FILTER_CHAIN;
 import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonServerCache.SERVER_SERIALIZE_FACTORY;
+import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonServerCache.SERVER_SERVICE_SEMAPHORE_MAP;
+import static org.syh.prj.rpc.simplerpc.core.common.constants.RpcConstants.DEFAULT_DELIMITER;
 
 public class Server {
+    private final Logger logger = LogManager.getLogger(Server.class);
+
     private static EventLoopGroup bossGroup = null;
     private static EventLoopGroup workerGroup = null;
 
@@ -52,6 +64,7 @@ public class Server {
     public void startApplication() throws InterruptedException {
         bossGroup = new NioEventLoopGroup();
         workerGroup = new NioEventLoopGroup();
+
         ServerBootstrap bootstrap = new ServerBootstrap();
         bootstrap.group(bossGroup, workerGroup);
         bootstrap.channel(NioServerSocketChannel.class);
@@ -62,10 +75,12 @@ public class Server {
                 .childOption(ChannelOption.SO_KEEPALIVE, true)
                 .childOption(ChannelOption.SO_SNDBUF, 16 * 1024)
                 .childOption(ChannelOption.SO_RCVBUF, 16 * 1024);
-
+        bootstrap.handler(new MaxConnectionLimitHandler(serverConfig.getMaxConnections()));
         bootstrap.childHandler(new ChannelInitializer<SocketChannel>() {
             @Override
             protected void initChannel(SocketChannel ch) throws Exception {
+                ByteBuf delimiter = Unpooled.copiedBuffer(DEFAULT_DELIMITER.getBytes());
+                ch.pipeline().addLast(new DelimiterBasedFrameDecoder(serverConfig.getMaxServerRequestDataSize(), delimiter));
                 ch.pipeline().addLast(new RpcEncoder());
                 ch.pipeline().addLast(new RpcDecoder());
                 ch.pipeline().addLast(new ServerHandler());
@@ -87,12 +102,22 @@ public class Server {
         Class<?> serialClass = extensionLoader.getActualClass(SerializeFactory.class, serverConfig.getServerSerialize());
         SERVER_SERIALIZE_FACTORY = (SerializeFactory) serialClass.newInstance();
 
-        ServerFilterChain serverFilterChain = new ServerFilterChain();
+        ServerPreFilterChain serverPreFilterChain = new ServerPreFilterChain();
+        ServerPostFilterChain serverPostFilterChain = new ServerPostFilterChain();
         List<Class<?>> serverFilterClassList = extensionLoader.getActualClassList(ServerFilter.class);
         for (Class<?> clazz: serverFilterClassList) {
-            serverFilterChain.addServerFilter((ServerFilter) clazz.newInstance());
+            SPI spi = clazz.getDeclaredAnnotation(SPI.class);
+            if (spi == null) {
+                continue;
+            }
+            if ("pre".equals(spi.value())) {
+                serverPreFilterChain.addServerFilter((ServerFilter) clazz.newInstance());
+            } else if ("post".equals(spi.value())) {
+                serverPostFilterChain.addServerFilter((ServerFilter) clazz.newInstance());
+            }
         }
-        SERVER_FILTER_CHAIN = serverFilterChain;
+        SERVER_PRE_FILTER_CHAIN = serverPreFilterChain;
+        SERVER_POST_FILTER_CHAIN = serverPostFilterChain;
     }
 
     public void exportService(ServiceWrapper serviceWrapper) {
@@ -115,7 +140,7 @@ public class Server {
             }
         }
 
-        Class interfaceClass = classes[0];
+        Class<?> interfaceClass = classes[0];
         PROVIDER_CLASS_MAP.put(interfaceClass.getName(), serviceBean);
         URL url = new URL();
         url.setServiceName(interfaceClass.getName());
@@ -126,6 +151,7 @@ public class Server {
         url.addParameter("group", serviceWrapper.getGroup());
         PROVIDER_URL_SET.add(url);
         PROVIDER_SERVICE_WRAPPER_MAP.put(interfaceClass.getName(), serviceWrapper);
+        SERVER_SERVICE_SEMAPHORE_MAP.put(interfaceClass.getName(), new ServerServiceSemaphoreWrapper(serviceWrapper.getLimit()));
     }
 
     public void batchRegisterUrl() {
@@ -153,15 +179,14 @@ public class Server {
 
         ServiceWrapper dataServiceWrapper = new ServiceWrapper(new DataServiceImpl(), "dev");
         dataServiceWrapper.setServiceToken("token-picea");
-        dataServiceWrapper.setLimit(2);
+        dataServiceWrapper.setLimit(20);
         dataServiceWrapper.setWeight(200);
+        server.exportService(dataServiceWrapper);
 
         ServiceWrapper userServiceWrapper = new ServiceWrapper(new UserServiceImpl(), "dev");
         userServiceWrapper.setServiceToken("token-abies");
-        userServiceWrapper.setLimit(2);
+        userServiceWrapper.setLimit(20);
         dataServiceWrapper.setWeight(100);
-
-        server.exportService(dataServiceWrapper);
         server.exportService(userServiceWrapper);
 
         server.startApplication();

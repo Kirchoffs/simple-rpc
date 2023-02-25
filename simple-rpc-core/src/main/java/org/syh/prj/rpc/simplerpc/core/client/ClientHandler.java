@@ -1,6 +1,5 @@
 package org.syh.prj.rpc.simplerpc.core.client;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;

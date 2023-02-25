@@ -1,5 +1,6 @@
 package org.syh.prj.rpc.simplerpc.core.filter.server;
 
+import org.syh.prj.rpc.simplerpc.core.common.annotations.SPI;
 import org.syh.prj.rpc.simplerpc.core.common.protocol.RpcInvocation;
 import org.syh.prj.rpc.simplerpc.core.common.utils.CommonUtils;
 import org.syh.prj.rpc.simplerpc.core.filter.ServerFilter;
@@ -7,6 +8,7 @@ import org.syh.prj.rpc.simplerpc.core.server.ServiceWrapper;
 
 import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonServerCache.PROVIDER_SERVICE_WRAPPER_MAP;
 
+@SPI("pre")
 public class ServerTokenFilterImpl implements ServerFilter {
     @Override
     public void doFilter(RpcInvocation rpcInvocation) {

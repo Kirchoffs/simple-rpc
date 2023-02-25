@@ -24,14 +24,6 @@ public class RpcReferenceWrapper<T> {
         this.attachments = attachments;
     }
 
-    public boolean isAsync(){
-        return Boolean.valueOf(String.valueOf(attachments.getOrDefault("async", "false")));
-    }
-
-    public void setAsync(boolean async){
-        this.attachments.put("async", async);
-    }
-
     public String getUrl(){
         return String.valueOf(attachments.get("url"));
     }
@@ -54,5 +46,13 @@ public class RpcReferenceWrapper<T> {
 
     public void setGroup(String group){
         attachments.put("group", group);
+    }
+
+    public int getRetry() {
+        return (int) attachments.getOrDefault("retry", 0);
+    }
+
+    public void setRetry(int retry) {
+        attachments.put("retry", retry);
     }
 }

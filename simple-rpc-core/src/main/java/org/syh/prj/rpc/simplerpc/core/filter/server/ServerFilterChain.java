@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ServerFilterChain {
-    private static List<ServerFilter> serverFilterList = new ArrayList<>();
+    private List<ServerFilter> serverFilterList = new ArrayList<>();
 
     public void addServerFilter(ServerFilter serverFilter) {
         serverFilterList.add(serverFilter);

@@ -13,6 +13,10 @@ public class ClientConfig {
 
     private String clientSerialize;
 
+    private Integer timeOut;
+
+    private Integer maxServerRespDataSize;
+
     public String getApplicationName() {
         return applicationName;
     }
@@ -59,5 +63,21 @@ public class ClientConfig {
 
     public void setClientSerialize(String clientSerialize) {
         this.clientSerialize = clientSerialize;
+    }
+
+    public Integer getTimeOut() {
+        return timeOut;
+    }
+
+    public void setTimeOut(Integer timeOut) {
+        this.timeOut = timeOut;
+    }
+
+    public Integer getMaxServerRespDataSize() {
+        return maxServerRespDataSize;
+    }
+
+    public void setMaxServerRespDataSize(Integer maxServerRespDataSize) {
+        this.maxServerRespDataSize = maxServerRespDataSize;
     }
 }

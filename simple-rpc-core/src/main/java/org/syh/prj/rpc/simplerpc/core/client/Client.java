@@ -1,12 +1,15 @@
 package org.syh.prj.rpc.simplerpc.core.client;
 
 import io.netty.bootstrap.Bootstrap;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.handler.codec.DelimiterBasedFrameDecoder;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.syh.prj.rpc.simplerpc.core.common.config.ClientConfig;
@@ -40,6 +43,7 @@ import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonClientCache.RPC_
 import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonClientCache.URL_MAP;
 import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonClientCache.CLIENT_SERIALIZE_FACTORY;
 import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonClientCache.CLIENT_CONFIG;
+import static org.syh.prj.rpc.simplerpc.core.common.constants.RpcConstants.DEFAULT_DELIMITER;
 
 public class Client {
     private final Logger logger = LogManager.getLogger(Client.class);
@@ -70,6 +74,8 @@ public class Client {
         bootstrap.handler(new ChannelInitializer<SocketChannel>() {
             @Override
             protected void initChannel(SocketChannel ch) throws Exception {
+                ByteBuf delimiter = Unpooled.copiedBuffer(DEFAULT_DELIMITER.getBytes());
+                ch.pipeline().addLast(new DelimiterBasedFrameDecoder(clientConfig.getMaxServerRespDataSize(), delimiter));
                 ch.pipeline().addLast(new RpcEncoder());
                 ch.pipeline().addLast(new RpcDecoder());
                 ch.pipeline().addLast(new ClientHandler());
@@ -184,9 +190,9 @@ public class Client {
         rpcReferenceDataServiceWrapper.setAimClass(DataService.class);
         rpcReferenceDataServiceWrapper.setGroup("dev");
         rpcReferenceDataServiceWrapper.setServiceToken("token-picea");
-        rpcReferenceDataServiceWrapper.setAsync(false);
+        rpcReferenceDataServiceWrapper.setRetry(0);
         DataService dataService = rpcReference.get(rpcReferenceDataServiceWrapper);
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 5; i++) {
             try {
                 String result = dataService.sendData("test");
                 System.out.println(i + ": " + result);
@@ -195,6 +201,7 @@ public class Client {
                 e.printStackTrace();
             }
         }
+
         List<String> results = dataService.getList();
         System.out.println(results);
 

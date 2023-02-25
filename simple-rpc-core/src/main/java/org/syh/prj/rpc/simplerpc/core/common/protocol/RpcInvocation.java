@@ -16,6 +16,8 @@ public class RpcInvocation implements Serializable {
 
     private Object response;
 
+    private Throwable exception;
+
     private Map<String, Object> attachments = new ConcurrentHashMap<>();
 
     public Object getResponse() {
@@ -24,6 +26,14 @@ public class RpcInvocation implements Serializable {
 
     public void setResponse(Object response) {
         this.response = response;
+    }
+
+    public Throwable getException() {
+        return exception;
+    }
+
+    public void setException(Throwable exception) {
+        this.exception = exception;
     }
 
     public String getUuid() {

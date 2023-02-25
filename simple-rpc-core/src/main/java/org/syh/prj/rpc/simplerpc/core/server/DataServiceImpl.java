@@ -8,7 +8,6 @@ import java.util.List;
 public class DataServiceImpl implements DataService {
     @Override
     public String sendData(String body) {
-        System.out.println(String.format("Received %d length of content", body.length()));
         return "success";
     }
 

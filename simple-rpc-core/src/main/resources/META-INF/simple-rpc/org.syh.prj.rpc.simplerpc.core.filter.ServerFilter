@@ -1,2 +1,4 @@
 serverLogFilterImpl=org.syh.prj.rpc.simplerpc.core.filter.server.ServerLogFilterImpl
 serverTokenFilterImpl=org.syh.prj.rpc.simplerpc.core.filter.server.ServerTokenFilterImpl
+serverServicePreLimitFilterImpl=org.syh.prj.rpc.simplerpc.core.filter.server.ServerServicePreLimitFilterImpl
+serverServicePostLimitFilterImpl=org.syh.prj.rpc.simplerpc.core.filter.server.ServerServicePostLimitFilterImpl

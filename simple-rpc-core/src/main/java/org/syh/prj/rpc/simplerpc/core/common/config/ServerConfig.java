@@ -15,6 +15,10 @@ public class ServerConfig {
 
     private Integer serverQueueSize;
 
+    private Integer maxServerRequestDataSize;
+
+    private Integer maxConnections;
+
     public String getRegisterAddr() {
         return registerAddr;
     }
@@ -69,5 +73,21 @@ public class ServerConfig {
 
     public void setServerQueueSize(Integer serverQueueSize) {
         this.serverQueueSize = serverQueueSize;
+    }
+
+    public Integer getMaxServerRequestDataSize() {
+        return maxServerRequestDataSize;
+    }
+
+    public void setMaxServerRequestDataSize(Integer maxServerRequestDataSize) {
+        this.maxServerRequestDataSize = maxServerRequestDataSize;
+    }
+
+    public Integer getMaxConnections() {
+        return maxConnections;
+    }
+
+    public void setMaxConnections(Integer maxConnections) {
+        this.maxConnections = maxConnections;
     }
 }

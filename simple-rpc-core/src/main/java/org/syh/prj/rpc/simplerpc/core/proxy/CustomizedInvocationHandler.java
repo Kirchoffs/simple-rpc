@@ -1,5 +1,8 @@
 package org.syh.prj.rpc.simplerpc.core.proxy;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.syh.prj.rpc.simplerpc.core.client.Client;
 import org.syh.prj.rpc.simplerpc.core.client.RpcReferenceWrapper;
 import org.syh.prj.rpc.simplerpc.core.common.protocol.RpcInvocation;
 
@@ -10,8 +13,11 @@ import java.util.concurrent.TimeoutException;
 
 import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonClientCache.RESP_MAP;
 import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonClientCache.SEND_QUEUE;
+import static org.syh.prj.rpc.simplerpc.core.common.constants.RpcConstants.DEFAULT_TIMEOUT;
 
 public class CustomizedInvocationHandler implements InvocationHandler {
+    private final Logger logger = LogManager.getLogger(CustomizedInvocationHandler.class);
+
     private final static Object OBJECT = new Object();
 
     private RpcReferenceWrapper rpcReferenceWrapper;
@@ -29,21 +35,27 @@ public class CustomizedInvocationHandler implements InvocationHandler {
         rpcInvocation.setUuid(UUID.randomUUID().toString());
         rpcInvocation.setAttachments(rpcReferenceWrapper.getAttachments());
 
-        SEND_QUEUE.add(rpcInvocation);
-        if (rpcReferenceWrapper.isAsync()) {
-            return null;
-        }
-
         RESP_MAP.put(rpcInvocation.getUuid(), OBJECT);
+        for (int i = 0; i < rpcReferenceWrapper.getRetry() + 1; i++) {
+            SEND_QUEUE.add(rpcInvocation);
 
-        long beginTime = System.currentTimeMillis();
-        while (System.currentTimeMillis() - beginTime < 3 * 1000) {
-            Object object = RESP_MAP.get(rpcInvocation.getUuid());
-            if (object instanceof RpcInvocation) {
-                return ((RpcInvocation) object).getResponse();
+            long beginTime = System.currentTimeMillis();
+            while (System.currentTimeMillis() - beginTime < DEFAULT_TIMEOUT) {
+                Object object = RESP_MAP.get(rpcInvocation.getUuid());
+
+                if (object instanceof RpcInvocation) {
+                    RESP_MAP.remove(rpcInvocation.getUuid());
+                    RpcInvocation rpcInvocationResp = (RpcInvocation) object;
+                    if (rpcInvocationResp.getException() != null) {
+                        rpcInvocationResp.getException().printStackTrace();
+                    }
+
+                    return rpcInvocationResp.getResponse();
+                }
             }
         }
+        RESP_MAP.remove(rpcInvocation.getUuid());
 
-        throw new TimeoutException("request timeout!");
+        throw new TimeoutException(String.format("request timeout! requested %d time(s)", rpcReferenceWrapper.getRetry() + 1));
     }
 }
