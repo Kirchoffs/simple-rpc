@@ -1,0 +1,3 @@
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+org.syh.prj.rpc.simplerpc.springstarter.config.SimpleRpcClientAutoConfiguration,\
+org.syh.prj.rpc.simplerpc.springstarter.config.SimpleRpcServerAutoConfiguration

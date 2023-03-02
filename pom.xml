@@ -12,6 +12,9 @@
         <module>simple-rpc-core</module>
         <module>simple-rpc-interface</module>
         <module>simple-rpc-jmh</module>
+        <module>simple-rpc-spring-starter</module>
+        <module>simple-rpc-provider</module>
+        <module>simple-rpc-consumer</module>
     </modules>
 
     <properties>
@@ -30,6 +33,7 @@
         <hessian.version>4.0.66</hessian.version>
         <kryo.version>4.0.0</kryo.version>
         <jmh.version>1.36</jmh.version>
+        <spring-boot.version>2.7.9</spring-boot.version>
     </properties>
 
     <dependencyManagement>
@@ -43,6 +47,12 @@
             <dependency>
                 <groupId>org.syh.prj.rpc</groupId>
                 <artifactId>simple-rpc-core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.syh.prj.rpc</groupId>
+                <artifactId>simple-rpc-spring-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -124,6 +134,24 @@
                 <artifactId>jmh-generator-annprocess</artifactId>
                 <version>${jmh.version}</version>
                 <scope>provided</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot</artifactId>
+                <version>${spring-boot.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-autoconfigure</artifactId>
+                <version>${spring-boot.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-starter-web</artifactId>
+                <version>${spring-boot.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

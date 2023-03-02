@@ -19,7 +19,7 @@ public class SimpleRpcListenerLoader {
         simpleRpcListenerList.add(simpleRpcListener);
     }
 
-    public void init() {
+    public static void init() {
         registerListener(new SimpleRpcServiceUpdateListener());
     }
 
@@ -51,6 +51,22 @@ public class SimpleRpcListenerLoader {
                         }
                     }
                 });
+            }
+        }
+    }
+
+    public static void sendSyncEvent(SimpleRpcEvent iRpcEvent) {
+        if (CommonUtils.isEmptyList(simpleRpcListenerList)) {
+            return;
+        }
+        for (SimpleRpcListener<?> simpleRpcListener : simpleRpcListenerList) {
+            Class<?> type = getInterfaceT(simpleRpcListener);
+            if (type.equals(iRpcEvent.getClass())) {
+                try {
+                    simpleRpcListener.callBack(iRpcEvent.getData());
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
         }
     }

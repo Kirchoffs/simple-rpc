@@ -1,12 +1,13 @@
-package org.syh.prj.rpc.simplerpc.core.server;
+package org.syh.prj.rpc.simplerpc.providerdemo.services;
 
-import org.checkerframework.checker.units.qual.A;
 import org.syh.prj.rpc.simplerpc.interfaces.UserService;
+import org.syh.prj.rpc.simplerpc.springstarter.common.SimpleRpcService;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 
+@SimpleRpcService
 public class UserServiceImpl implements UserService {
     Random random = new Random();
 

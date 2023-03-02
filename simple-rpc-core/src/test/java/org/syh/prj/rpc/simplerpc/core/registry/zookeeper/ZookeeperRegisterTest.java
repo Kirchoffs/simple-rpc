@@ -2,7 +2,7 @@ package org.syh.prj.rpc.simplerpc.core.registry.zookeeper;
 
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.syh.prj.rpc.simplerpc.interfaces.DataService;
+import org.syh.prj.rpc.simplerpc.interfaces.OrderService;
 
 import java.util.List;
 
@@ -11,7 +11,7 @@ public class ZookeeperRegisterTest {
     @Test
     public void testConnectZookeeper() throws Exception {
         ZookeeperRegister zookeeperRegister = new ZookeeperRegister("localhost:2181");
-        List<String> urls = zookeeperRegister.getProviderIps(DataService.class.getName());
+        List<String> urls = zookeeperRegister.getProviderIps(OrderService.class.getName());
         System.out.println(urls);
     }
 }

@@ -25,6 +25,8 @@ import org.syh.prj.rpc.simplerpc.core.registry.RegistryService;
 import org.syh.prj.rpc.simplerpc.core.registry.URL;
 import org.syh.prj.rpc.simplerpc.core.registry.zookeeper.AbstractRegister;
 import org.syh.prj.rpc.simplerpc.core.serialize.SerializeFactory;
+import org.syh.prj.rpc.simplerpc.core.server.serviceimpl.OrderServiceImpl;
+import org.syh.prj.rpc.simplerpc.core.server.serviceimpl.UserServiceImpl;
 import org.syh.prj.rpc.simplerpc.core.spi.ExtensionLoader;
 
 import java.io.IOException;
@@ -33,6 +35,7 @@ import java.util.List;
 import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonServerCache.PROVIDER_CLASS_MAP;
 import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonServerCache.PROVIDER_SERVICE_WRAPPER_MAP;
 import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonServerCache.PROVIDER_URL_SET;
+import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonServerCache.REGISTRY_SERVICE;
 import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonServerCache.SERVER_PRE_FILTER_CHAIN;
 import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonServerCache.SERVER_POST_FILTER_CHAIN;
 import static org.syh.prj.rpc.simplerpc.core.common.cache.CommonServerCache.SERVER_CHANNEL_DISPATCHER;
@@ -48,8 +51,6 @@ public class Server {
     private static EventLoopGroup workerGroup = null;
 
     private ServerConfig serverConfig;
-
-    private RegistryService registryService;
 
     private ExtensionLoader extensionLoader = new ExtensionLoader();
 
@@ -131,10 +132,10 @@ public class Server {
             throw new RuntimeException("service should only have one interfaces!");
         }
 
-        if (registryService == null) {
+        if (REGISTRY_SERVICE == null) {
             try {
                 Class<?> registerClass = extensionLoader.getActualClass(RegistryService.class, serverConfig.getRegisterType());
-                registryService = (AbstractRegister) registerClass.newInstance();
+                REGISTRY_SERVICE = (AbstractRegister) registerClass.newInstance();
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
@@ -165,7 +166,7 @@ public class Server {
                 }
 
                 for (URL url: PROVIDER_URL_SET) {
-                    registryService.register(url);
+                    REGISTRY_SERVICE.register(url);
                 }
             }
         });
@@ -177,16 +178,16 @@ public class Server {
         Server server = new Server();
         server.initServerConfig();
 
-        ServiceWrapper dataServiceWrapper = new ServiceWrapper(new DataServiceImpl(), "dev");
-        dataServiceWrapper.setServiceToken("token-picea");
-        dataServiceWrapper.setLimit(20);
-        dataServiceWrapper.setWeight(200);
-        server.exportService(dataServiceWrapper);
+        ServiceWrapper orderServiceWrapper = new ServiceWrapper(new OrderServiceImpl(), "dev");
+        orderServiceWrapper.setServiceToken("token-picea");
+        orderServiceWrapper.setLimit(20);
+        orderServiceWrapper.setWeight(200);
+        server.exportService(orderServiceWrapper);
 
         ServiceWrapper userServiceWrapper = new ServiceWrapper(new UserServiceImpl(), "dev");
         userServiceWrapper.setServiceToken("token-abies");
         userServiceWrapper.setLimit(20);
-        dataServiceWrapper.setWeight(100);
+        userServiceWrapper.setWeight(100);
         server.exportService(userServiceWrapper);
 
         server.startApplication();

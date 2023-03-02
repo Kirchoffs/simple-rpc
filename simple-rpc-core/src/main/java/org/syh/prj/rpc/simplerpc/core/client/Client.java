@@ -29,7 +29,7 @@ import org.syh.prj.rpc.simplerpc.core.registry.zookeeper.AbstractRegister;
 import org.syh.prj.rpc.simplerpc.core.router.SimpleRpcRouter;
 import org.syh.prj.rpc.simplerpc.core.serialize.SerializeFactory;
 import org.syh.prj.rpc.simplerpc.core.spi.ExtensionLoader;
-import org.syh.prj.rpc.simplerpc.interfaces.DataService;
+import org.syh.prj.rpc.simplerpc.interfaces.OrderService;
 import org.syh.prj.rpc.simplerpc.interfaces.UserService;
 
 import java.io.IOException;
@@ -150,7 +150,7 @@ public class Client {
         }
     }
 
-    private void startClient() {
+    public void startClient() {
         Thread asyncSendJob = new Thread(new AsyncSendJob());
         asyncSendJob.start();
     }
@@ -180,36 +180,37 @@ public class Client {
         Client client = new Client();
         RpcReference rpcReference = client.initClientApplication();
 
-        client.doSubscribeService(DataService.class);
+        client.doSubscribeService(OrderService.class);
         client.doSubscribeService(UserService.class);
         ConnectionHandler.setBootstrap(client.getBootstrap());
         client.doConnectServer();
         client.startClient();
 
-        RpcReferenceWrapper<DataService> rpcReferenceDataServiceWrapper = new RpcReferenceWrapper<>();
-        rpcReferenceDataServiceWrapper.setAimClass(DataService.class);
-        rpcReferenceDataServiceWrapper.setGroup("dev");
-        rpcReferenceDataServiceWrapper.setServiceToken("token-picea");
-        rpcReferenceDataServiceWrapper.setRetry(0);
-        DataService dataService = rpcReference.get(rpcReferenceDataServiceWrapper);
+        RpcReferenceWrapper<OrderService> rpcReferenceOrderServiceWrapper = new RpcReferenceWrapper<>();
+        rpcReferenceOrderServiceWrapper.setAimClass(OrderService.class);
+        rpcReferenceOrderServiceWrapper.setGroup("dev");
+        rpcReferenceOrderServiceWrapper.setServiceToken("token-picea");
+        rpcReferenceOrderServiceWrapper.setRetry(0);
+        OrderService orderService = rpcReference.get(rpcReferenceOrderServiceWrapper);
+
         for (int i = 0; i < 5; i++) {
             try {
-                String result = dataService.sendData("test");
-                System.out.println(i + ": " + result);
+                String orderId = orderService.placeOrder("test-order");
+                System.out.println(i + ": " + orderId);
                 Thread.sleep(1000);
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
-
-        List<String> results = dataService.getList();
-        System.out.println(results);
+        String order = orderService.getOrder("test-order-id");
+        System.out.println(order);
 
         RpcReferenceWrapper<UserService> rpcReferenceUserServiceWrapper = new RpcReferenceWrapper<>();
         rpcReferenceUserServiceWrapper.setAimClass(UserService.class);
         rpcReferenceUserServiceWrapper.setGroup("dev");
         rpcReferenceUserServiceWrapper.setServiceToken("token-abies");
         UserService userService = rpcReference.get(rpcReferenceUserServiceWrapper);
+
         List<String> users = userService.getUsers();
         System.out.println(users);
 

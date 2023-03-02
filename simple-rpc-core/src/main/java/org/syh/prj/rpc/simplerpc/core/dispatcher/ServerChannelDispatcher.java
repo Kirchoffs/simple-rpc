@@ -32,7 +32,7 @@ public class ServerChannelDispatcher {
         RPC_DATA_QUEUE = new ArrayBlockingQueue<>(queueSize);
         executorService = new ThreadPoolExecutor(
             bizThreadNums,
-            bizThreadNums,
+            bizThreadNums + bizThreadNums,
         0L,
             TimeUnit.MILLISECONDS,
             new ArrayBlockingQueue<>(512)

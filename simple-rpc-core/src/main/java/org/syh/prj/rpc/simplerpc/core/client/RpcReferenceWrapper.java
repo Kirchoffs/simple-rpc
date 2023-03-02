@@ -55,4 +55,12 @@ public class RpcReferenceWrapper<T> {
     public void setRetry(int retry) {
         attachments.put("retry", retry);
     }
+
+    public void setTimeOut(int timeOut) {
+        attachments.put("timeOut", timeOut);
+    }
+
+    public String getTimeOUt() {
+        return String.valueOf(attachments.get("timeOut"));
+    }
 }

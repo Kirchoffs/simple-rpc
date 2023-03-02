@@ -167,3 +167,74 @@ public ThreadPoolExecutor(
     BlockingQueue<Runnable> workQueue
 )
 ```
+
+### Generic Related
+```
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
+import java.util.Arrays;
+
+interface Alpha<T> {
+
+}
+
+interface Beta<T> {
+
+}
+
+interface Gamma<T, R> {
+
+}
+
+interface Delta {
+
+}
+
+class Zeta {
+
+}
+
+class Epsilon extends Zeta implements Alpha<String>, Beta<Integer>, Gamma<String, Integer>, Delta {
+
+}
+
+public class GenericDemo {
+    public static void main(String[] args) {
+        Object epsilon = new Epsilon();
+        Type[] interfaces = epsilon.getClass().getGenericInterfaces();
+        System.out.println(Arrays.toString(interfaces));
+        // Alpha, Beta, Gamma, Delta
+
+        ParameterizedType parameterizedType = (ParameterizedType) interfaces[2];
+        Type[] actualTypes = parameterizedType.getActualTypeArguments();
+        System.out.println(Arrays.toString(actualTypes));
+        // String Integer
+        
+        for (Type actualType: actualTypes) {
+            if (actualType instanceof Class<?>) {
+                System.out.println(actualType);
+            }
+        }
+        // class java.lang.String
+        // class java.lang.Integer
+    }
+}
+```
+
+### Event and Listener Design
+```
+class SimpleRpcNodeChangeEvent implements SimpleRpcEvent {}
+
+class SimpleRpcNodeChangeListener implements SimpleRpcListener<SimpleRpcNodeChangeEvent> {}
+
+void sendEvent(SimpleRpcEvent simpleRpcEvent) {
+    for (SimpleRpcListener<?> simpleRpcListener: simpleRpcListenerList) {
+        Class<?> type = getInterfaceT(simpleRpcListener);
+        if (type.equals(simpleRpcEvent.getClass())) {
+            ...
+            simpleRpcListener.callBack(simpleRpcEvent.getData());
+            ...
+        }
+    }
+}
+```
